@@ -17,11 +17,6 @@
       "id": "ops",
       "name": "Store Operations Supplies",
       "step": 4
-    },
-    {
-      "id": "mktg",
-      "name": "Marketing / Signage",
-      "step": 5
     }
   ],
   "items": [
@@ -136,14 +131,6 @@
       "unit": "box",
       "active": true,
       "reorder": "High use — order ahead"
-    },
-    {
-      "id": "mk3",
-      "cat": "mktg",
-      "name": "Price Card Holders",
-      "unit": "pack",
-      "active": true,
-      "reorder": ""
     }
   ],
   "stores": [
