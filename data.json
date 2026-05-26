@@ -50,22 +50,6 @@
       "reorder": ""
     },
     {
-      "id": "of5",
-      "cat": "office",
-      "name": "Stapler",
-      "unit": "each",
-      "active": true,
-      "reorder": ""
-    },
-    {
-      "id": "of6",
-      "cat": "office",
-      "name": "Staples (box)",
-      "unit": "box",
-      "active": true,
-      "reorder": ""
-    },
-    {
       "id": "of7",
       "cat": "office",
       "name": "Printer Ink",
@@ -132,7 +116,7 @@
     {
       "id": "cl7",
       "cat": "clean",
-      "name": "Microfiber Cloths",
+      "name": "Mop",
       "unit": "pack",
       "active": true,
       "reorder": ""
@@ -154,98 +138,10 @@
       "reorder": "High use — order ahead"
     },
     {
-      "id": "op2",
-      "cat": "ops",
-      "name": "Shopping Bags",
-      "unit": "bundle",
-      "active": true,
-      "reorder": ""
-    },
-    {
-      "id": "op3",
-      "cat": "ops",
-      "name": "Security Tags",
-      "unit": "pack",
-      "active": true,
-      "reorder": ""
-    },
-    {
-      "id": "op4",
-      "cat": "ops",
-      "name": "SIM Card Trays",
-      "unit": "pack",
-      "active": true,
-      "reorder": ""
-    },
-    {
-      "id": "op5",
-      "cat": "ops",
-      "name": "Device Cleaning Kit",
-      "unit": "each",
-      "active": true,
-      "reorder": ""
-    },
-    {
-      "id": "op6",
-      "cat": "ops",
-      "name": "Label Maker Tape",
-      "unit": "roll",
-      "active": true,
-      "reorder": ""
-    },
-    {
-      "id": "op7",
-      "cat": "ops",
-      "name": "Batteries (AA)",
-      "unit": "pack",
-      "active": true,
-      "reorder": ""
-    },
-    {
-      "id": "op8",
-      "cat": "ops",
-      "name": "Cash Drawer Liner",
-      "unit": "pack",
-      "active": true,
-      "reorder": ""
-    },
-    {
-      "id": "mk1",
-      "cat": "mktg",
-      "name": "Window Poster — Promo",
-      "unit": "each",
-      "active": true,
-      "reorder": "HQ approval needed"
-    },
-    {
-      "id": "mk2",
-      "cat": "mktg",
-      "name": "Counter Cards",
-      "unit": "pack",
-      "active": true,
-      "reorder": ""
-    },
-    {
       "id": "mk3",
       "cat": "mktg",
-      "name": "Price Tag Holders",
+      "name": "Price Card Holders",
       "unit": "pack",
-      "active": true,
-      "reorder": ""
-    },
-    {
-      "id": "mk4",
-      "cat": "mktg",
-      "name": "Pull-Up Banner",
-      "unit": "each",
-      "active": true,
-      "reorder": "HQ approval needed"
-    },
-    {
-      "id": "mk5",
-      "cat": "mktg",
-      "name": "Promo Flyers",
-      "unit": "bundle",
       "active": true,
       "reorder": ""
     }
