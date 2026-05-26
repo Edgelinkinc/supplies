@@ -126,13 +126,13 @@ table.tbl tr.click:hover td{background:var(--surface)}
 /* ---------- CONFIG: paste your values here ---------- */
 var CONFIG = {
   DATA_URL: "data.json",
-  GET_ORDERS_FLOW_URL:    "https://defaultebc8d7eeee3a4821b739b0b060e735.7f.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/0178fdd3097948df9458fb2dec501fea/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=t4y6rsJRMVA6VmZCXTkWA_TcqwJd10kX1iw6czTwz50",ET_ORDERS_FLOW_URL:    "PASTE_GET_SUPPLY_ORDERS_FLOW_URL",    /* Power Automate: SharePoint Get items -> Response */
-  UPDATE_ORDER_FLOW_URL:  "https://defaultebc8d7eeee3a4821b739b0b060e735.7f.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/c9226483c2ee4341a01a53253b8e76bf/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=6rLv3ozqUSEe-CH43x1VHpoGB5KJvVtbJ-K_XqaURv4",
-  PUBLISH_CONFIG_FLOW_URL:"https://defaultebc8d7eeee3a4821b739b0b060e735.7f.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/085f9689cfee4696817479bfbd6ea377/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=F5fFQBZH_IpwuSmGnxLx3UBSROEYJ3OQfgb7rW82MMg",
+  GET_ORDERS_FLOW_URL:    "PASTE_GET_SUPPLY_ORDERS_FLOW_URL",    /* Power Automate: SharePoint Get items -> Response */
+  UPDATE_ORDER_FLOW_URL:  "PASTE_UPDATE_SUPPLY_ORDER_FLOW_URL",  /* Power Automate: SharePoint Update item */
+  PUBLISH_CONFIG_FLOW_URL:"PASTE_PUBLISH_CONFIG_FLOW_URL",       /* Power Automate: commit data.json to GitHub (optional) */
   EMAILJS_PUBLIC_KEY: "YOUR_EMAILJS_PUBLIC_KEY",                 /* optional: status-change emails */
   EMAILJS_SERVICE_ID: "YOUR_EMAILJS_SERVICE_ID",
   EMAILJS_STATUS_TEMPLATE_ID: "",                               /* optional */
-  ADMIN_PIN: "3833",                                            /* change me */
+  ADMIN_PIN: "1234",                                            /* change me */
   GITHUB: { owner:"edgelinkinc", repo:"supplies", branch:"main", path:"data.json" }
 };
 /* --------------------------------------------------- */
@@ -187,8 +187,11 @@ function loadConfig(cb){
 function normalizeOrder(o){
   var get=function(){ for(var i=0;i<arguments.length;i++){ if(o[arguments[i]]!=null && o[arguments[i]]!=="") return o[arguments[i]]; } return ""; };
   var items=get("items","Items","itemsJson");
-  if(typeof items==="string"){ try{ items=JSON.parse(items); }catch(e){ items=[]; } }
-  if(!items) items=[];
+  if(typeof items==="string"){
+    var s=items.replace(/<[^>]*>/g,"").replace(/&quot;/g,'"').replace(/&#34;/g,'"').replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&#160;/g," ").replace(/&nbsp;/g," ").replace(/&#39;/g,"'").trim();
+    try{ items=JSON.parse(s); }catch(e){ items=[]; }
+  }
+  if(!items || !(items instanceof Array)) items=[];
   return {
     orderId:get("orderId","OrderId","Title","Order_x0020_ID")||uid("SO-"),
     employee:get("employee","Employee"),
@@ -197,6 +200,7 @@ function normalizeOrder(o){
     status:get("status","Status")||"Pending",
     po:get("po","PO","PONumber"),
     tracking:get("tracking","Tracking","TrackingNumber"),
+    cost:get("cost","Cost"),
     notes:get("notes","Notes"),
     fulfillmentNotes:get("fulfillmentNotes","FulfillmentNotes"),
     dateFulfilled:String(get("dateFulfilled","DateFulfilled")||"").substring(0,10),
@@ -391,11 +395,11 @@ function bars(obj,labelFn){
 /* ---------- CSV export ---------- */
 function exportCSV(){
   var list=filteredOrders();
-  var rows=[["Order ID","Employee","Store","Store Name","Order Date","Status","Units","PO Number","Tracking","Date Fulfilled","Updated By","Notes","Items"]];
+  var rows=[["Order ID","Employee","Store","Store Name","Order Date","Status","Units","PO Number","Tracking","Cost","Date Fulfilled","Updated By","Notes","Items"]];
   for(var i=0;i<list.length;i++){
     var o=list[i],itxt=[]; var it=o.items||[];
     for(var j=0;j<it.length;j++) itxt.push((it[j].qty||0)+"x "+(it[j].name||it[j].id));
-    rows.push([o.orderId,o.employee,o.store,storeName(o.store),o.orderDate,o.status,orderUnits(o),o.po,o.tracking,o.dateFulfilled||"",o.updatedBy||"",o.notes||"",itxt.join("; ")]);
+    rows.push([o.orderId,o.employee,o.store,storeName(o.store),o.orderDate,o.status,orderUnits(o),o.po,o.tracking,o.cost||"",o.dateFulfilled||"",o.updatedBy||"",o.notes||"",itxt.join("; ")]);
   }
   var csv=rows.map(function(r){ return r.map(function(c){ c=String(c==null?"":c); return '"'+c.replace(/"/g,'""')+'"'; }).join(","); }).join("\n");
   download("edgelink-supply-orders-"+todayISO()+".csv",csv,"text/csv");
@@ -419,6 +423,7 @@ function openOrder(id){
   h+='<div class="k">Store</div><div>'+X(storeName(o.store))+'</div>';
   h+='<div class="k">PO number</div><div><input id="m-po" value="'+X(o.po)+'" placeholder="Add PO #" style="padding:6px 9px;border:1px solid var(--line);border-radius:7px;font-size:12.5px;width:180px"></div>';
   h+='<div class="k">Tracking #</div><div><input id="m-track" value="'+X(o.tracking)+'" placeholder="Add tracking #" style="padding:6px 9px;border:1px solid var(--line);border-radius:7px;font-size:12.5px;width:220px"></div>';
+  h+='<div class="k">Cost</div><div><input id="m-cost" value="'+X(o.cost)+'" placeholder="$0.00" style="padding:6px 9px;border:1px solid var(--line);border-radius:7px;font-size:12.5px;width:140px"></div>';
   h+='<div class="k">Update status</div><div>'+statusSel+'</div>';
   if(o.dateFulfilled) h+='<div class="k">Date fulfilled</div><div>'+fmtDate(o.dateFulfilled)+'</div>';
   if(o.updatedBy) h+='<div class="k">Updated by</div><div>'+X(o.updatedBy)+'</div>';
@@ -436,7 +441,7 @@ function openOrder(id){
 }
 function saveOrder(){
   var o=MODAL_ORDER; if(!o) return;
-  o.status=$("m-status").value; o.po=$("m-po").value; o.tracking=$("m-track").value; o.fulfillmentNotes=$("m-fnotes").value;
+  o.status=$("m-status").value; o.po=$("m-po").value; o.tracking=$("m-track").value; o.cost=$("m-cost").value; o.fulfillmentNotes=$("m-fnotes").value;
   var it=o.items||[]; for(var j=0;j<it.length;j++){ var sel=$("m-f-"+j); if(sel) it[j].fulfill=sel.value; }
   if(o.status==="Fulfilled" && !o.dateFulfilled) o.dateFulfilled=todayISO();
   o.updatedBy="HQ Admin";
