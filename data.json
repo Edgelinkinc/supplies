@@ -131,6 +131,14 @@
       "unit": "box",
       "active": true,
       "reorder": "High use — order ahead"
+    },
+    {
+      "id": "it7ovvn",
+      "cat": "office",
+      "name": "Highlighters",
+      "unit": "Pack",
+      "active": true,
+      "reorder": ""
     }
   ],
   "stores": [
@@ -322,24 +330,6 @@
       "name": "Cheryl Birchfield",
       "email": "hr@edgelinkinc.com",
       "role": "Admin",
-      "active": true
-    },
-    {
-      "name": "Rose Perez",
-      "email": "rose@edgelinkinc.com",
-      "role": "Coach / Viewer",
-      "active": true
-    },
-    {
-      "name": "Joel Montero",
-      "email": "joel@edgelinkinc.com",
-      "role": "Coach / Viewer",
-      "active": true
-    },
-    {
-      "name": "Manny Rivera",
-      "email": "manny@edgelinkinc.com",
-      "role": "Fulfillment",
       "active": true
     }
   ]
