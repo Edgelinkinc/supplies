@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Edgelink — Supply Order Center (HQ)</title>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;500;600;700&display=swap');
+:root{
+  --magenta:#E20074;--magenta-dk:#b3005b;--magenta-lt:#fce8f3;
+  --purple:#5C2D91;--purple-dk:#3e1d6e;--purple-lt:#ede7f6;
+  --ink:#241229;--muted:#6b6470;--line:#ece7f1;--bg:#f6f3fa;--card:#fff;--surface:#faf8fc;
+  --green:#1f9d5b;--green-bg:#e7f6ed;--amber:#c77d12;--amber-bg:#fcf2df;
+  --blue:#2563c9;--blue-bg:#e8f0fd;--red:#cf2f4a;--red-bg:#fbe9ec;--gray:#7a7484;--gray-bg:#f0edf4;
+  --r:14px;--r-sm:10px;--shadow:0 1px 2px rgba(36,18,41,.05),0 4px 16px rgba(74,27,92,.06);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--ink);font-family:'Montserrat',Arial,sans-serif;-webkit-font-smoothing:antialiased}
+body{padding-bottom:50px}
+h1,h2,h3,h4{font-weight:600;line-height:1.2}
+.topbar{background:linear-gradient(95deg,var(--purple),var(--magenta));color:#fff;padding:14px 22px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:40;box-shadow:0 2px 10px rgba(74,27,92,.18)}
+.diamond{width:30px;height:30px;transform:rotate(45deg);border-radius:7px;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.diamond span{transform:rotate(-45deg);font-family:'Bebas Neue';font-size:20px;color:var(--magenta)}
+.brand .name{font-family:'Bebas Neue';font-size:26px;letter-spacing:1px;line-height:1}
+.brand .sub{font-size:10.5px;letter-spacing:2px;text-transform:uppercase;opacity:.85;margin-top:-2px}
+.livebadge{margin-left:auto;display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.16);padding:7px 13px;border-radius:20px;font-size:12px;font-weight:600}
+.livebadge .d{width:8px;height:8px;border-radius:50%;background:#7CFFB2}
+.livebadge.err .d{background:#FFB0B0}
+.refresh{background:rgba(255,255,255,.16);border:0;color:#fff;border-radius:9px;padding:7px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Montserrat'}
+.refresh:hover{background:rgba(255,255,255,.26)}
+.wrap{max-width:1160px;margin:0 auto;padding:22px 18px}
+.tabs{display:flex;gap:4px;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:6px;margin-bottom:18px;box-shadow:var(--shadow)}
+.tabs button{font-family:'Montserrat';font-weight:500;font-size:13px;color:var(--muted);background:transparent;border:0;padding:9px 14px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:7px;transition:.15s}
+.tabs button:hover{background:var(--surface);color:var(--ink)}
+.tabs button.on{background:linear-gradient(95deg,var(--purple),var(--magenta));color:#fff}
+.tabs button i{font-style:normal}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+.pad{padding:20px 22px}
+.section-title{font-family:'Bebas Neue';font-size:24px;letter-spacing:.6px;color:var(--purple);margin-bottom:3px}
+.section-sub{font-size:12.5px;color:var(--muted);margin-bottom:16px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:13px;margin-bottom:18px}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.tile:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--magenta)}
+.tile.p:before{background:var(--purple)}.tile.a:before{background:var(--amber)}.tile.g:before{background:var(--green)}.tile.b:before{background:var(--blue)}.tile.r:before{background:var(--red)}.tile.x:before{background:var(--gray)}
+.tile .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);font-weight:600}
+.tile .val{font-family:'Bebas Neue';font-size:38px;line-height:1;margin-top:7px}
+.tile .delta{font-size:11px;color:var(--muted);margin-top:5px}
+.badge{font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.b-pending{background:var(--amber-bg);color:var(--amber)}.b-fulfilled{background:var(--green-bg);color:var(--green)}.b-partial{background:var(--blue-bg);color:var(--blue)}.b-transit{background:#efe9fb;color:var(--purple)}.b-canceled{background:var(--red-bg);color:var(--red)}
+.dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+.tbl-wrap{overflow-x:auto;border-radius:var(--r)}
+table.tbl{width:100%;border-collapse:collapse;font-size:13px;min-width:620px}
+table.tbl th{text-align:left;font-size:10.5px;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);font-weight:600;padding:12px 14px;border-bottom:1px solid var(--line);background:var(--surface)}
+table.tbl td{padding:13px 14px;border-bottom:1px solid var(--line);vertical-align:middle}
+table.tbl tr:last-child td{border-bottom:0}
+table.tbl tr.click{cursor:pointer}
+table.tbl tr.click:hover td{background:var(--surface)}
+.ordid{font-weight:600;color:var(--purple)}
+.btn{font-family:'Montserrat';font-weight:600;font-size:13px;border:0;border-radius:10px;padding:11px 18px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:.15s}
+.btn-primary{background:linear-gradient(95deg,var(--purple),var(--magenta));color:#fff}.btn-primary:hover{filter:brightness(1.06)}
+.btn-ghost{background:#fff;color:var(--purple);border:1px solid var(--line)}.btn-ghost:hover{background:var(--surface)}
+.btn-sm{padding:8px 13px;font-size:12px}
+.btn:disabled{opacity:.4;cursor:not-allowed}.btn i{font-style:normal}
+.row-between{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.muted{color:var(--muted)}
+.split{display:grid;grid-template-columns:1fr;gap:16px}
+@media(min-width:880px){.split.two{grid-template-columns:1.4fr 1fr}}
+.filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.filters select,.filters input{font-family:'Montserrat';font-size:13px;padding:9px 12px;border:1px solid var(--line);border-radius:9px;background:#fff;outline:none}
+.barchart{display:flex;flex-direction:column;gap:10px}
+.barrow{display:grid;grid-template-columns:130px 1fr 44px;align-items:center;gap:10px;font-size:12.5px}
+.barrow .track{height:14px;background:var(--gray-bg);border-radius:8px;overflow:hidden}
+.barrow .fill{height:100%;background:linear-gradient(90deg,var(--purple),var(--magenta));border-radius:8px}
+.barrow .n{text-align:right;font-weight:600;font-size:12px}
+.empty{text-align:center;padding:30px;color:var(--muted);font-size:13px}
+.alertcard{display:flex;gap:12px;padding:13px 15px;border-radius:var(--r-sm);align-items:center;margin-bottom:9px}
+.alertcard.warn{background:var(--amber-bg)}.alertcard.danger{background:var(--red-bg)}
+.alertcard .big{font-family:'Bebas Neue';font-size:30px;line-height:1}
+.alertcard.warn .big{color:var(--amber)}.alertcard.danger .big{color:var(--red)}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:5px 10px;font-size:12px;margin:3px}
+.adminlist .li{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:var(--r-sm);margin-bottom:9px}
+.adminlist .li .nm{font-size:13.5px;font-weight:600}.adminlist .li .meta{font-size:11.5px;color:var(--muted)}
+.adminlist .li .acts{margin-left:auto;display:flex;gap:6px;align-items:center}
+.iconbtn{width:32px;height:32px;border:1px solid var(--line);background:#fff;border-radius:8px;color:var(--purple);cursor:pointer;font-size:14px}.iconbtn:hover{background:var(--surface)}
+.toggle{width:42px;height:24px;border-radius:20px;background:var(--green);position:relative;cursor:pointer;flex-shrink:0;border:0}
+.toggle.off{background:#cfc9d6}
+.toggle:after{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.15s}
+.toggle.off:after{left:auto;right:2px}
+.pin{max-width:380px;margin:50px auto;text-align:center}
+.pin .lock{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--purple),var(--magenta));color:#fff;display:flex;align-items:center;justify-content:center;font-size:30px;margin:0 auto 16px}
+.pin input{letter-spacing:8px;text-align:center;font-size:22px;width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:10px;outline:none}
+.field{margin-bottom:13px}
+.field label{display:block;font-size:12px;font-weight:600;margin-bottom:6px}
+.field input,.field select,.field textarea{width:100%;font-family:'Montserrat';font-size:14px;padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:#fff;outline:none}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--magenta);box-shadow:0 0 0 3px rgba(226,0,116,.12)}
+.modal-bg{display:none;position:fixed;inset:0;z-index:80;background:rgba(36,18,41,.45);align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto}
+.modal-bg.show{display:flex}
+.modal{background:#fff;border-radius:16px;width:100%;max-width:680px;box-shadow:0 20px 60px rgba(36,18,41,.3);overflow:hidden}
+.modal-head{background:linear-gradient(95deg,var(--purple),var(--magenta));color:#fff;padding:18px 22px;display:flex;align-items:center;gap:12px}
+.modal-head .x{margin-left:auto;background:rgba(255,255,255,.18);border:0;color:#fff;width:32px;height:32px;border-radius:9px;font-size:18px;cursor:pointer}
+.modal-body{padding:22px;max-height:64vh;overflow-y:auto}
+.kv{display:grid;grid-template-columns:130px 1fr;gap:8px 14px;font-size:13px;margin-bottom:18px}
+.kv .k{color:var(--muted);font-weight:600}
+.loading{text-align:center;padding:60px 20px;color:var(--muted)}
+.pub{background:linear-gradient(95deg,rgba(74,27,92,.05),rgba(226,0,116,.05));border-color:rgba(226,0,116,.25)}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="diamond"><span>E</span></div>
+  <div class="brand"><div class="name">EDGELINK</div><div class="sub">Supply Order Center · HQ</div></div>
+  <button class="refresh" onclick="loadOrders(true)">&#8635; Refresh</button>
+  <div class="livebadge" id="live"><span class="d"></span><span id="live-txt">Loading…</span></div>
+</div>
+<div class="wrap" id="wrap"><div class="loading">Loading orders…</div></div>
+<div class="modal-bg" id="modal-bg" onclick="if(event.target===this)closeModal()"><div class="modal" id="modal-inner"></div></div>
+
+<script>
+/* ============================================================
+   EDGELINK SUPPLY ORDER CENTER — HQ Dashboard + Admin
+   ES5 only. Reads config from data.json, orders from the
+   "Get Edgelink Supply Orders" Power Automate flow.
+   ============================================================ */
+
+/* ---------- CONFIG: paste your values here ---------- */
+var CONFIG = {
+  DATA_URL: "data.json",
+  GET_ORDERS_FLOW_URL:    "PASTE_GET_SUPPLY_ORDERS_FLOW_URL",    /* Power Automate: SharePoint Get items -> Response */
+  UPDATE_ORDER_FLOW_URL:  "PASTE_UPDATE_SUPPLY_ORDER_FLOW_URL",  /* Power Automate: SharePoint Update item */
+  PUBLISH_CONFIG_FLOW_URL:"PASTE_PUBLISH_CONFIG_FLOW_URL",       /* Power Automate: commit data.json to GitHub (optional) */
+  EMAILJS_PUBLIC_KEY: "YOUR_EMAILJS_PUBLIC_KEY",                 /* optional: status-change emails */
+  EMAILJS_SERVICE_ID: "YOUR_EMAILJS_SERVICE_ID",
+  EMAILJS_STATUS_TEMPLATE_ID: "",                               /* optional */
+  ADMIN_PIN: "1234",                                            /* change me */
+  GITHUB: { owner:"edgelinkinc", repo:"supplies", branch:"main", path:"data.json" }
+};
+/* --------------------------------------------------- */
+
+/* ---------- helpers ---------- */
+function $(id){ return document.getElementById(id); }
+function X(s){ if(s==null) return ""; return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function lsGet(k,d){ try{ var v=localStorage.getItem(k); return v?JSON.parse(v):d; }catch(e){ return d; } }
+function lsSet(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }
+function pad2(n){ return n<10?"0"+n:""+n; }
+function todayISO(){ var d=new Date(); return d.getFullYear()+"-"+pad2(d.getMonth()+1)+"-"+pad2(d.getDate()); }
+function fmtDate(s){ if(!s) return "—"; s=String(s).substring(0,10); var p=s.split("-"); if(p.length<3) return s; return p[1]+"/"+p[2]+"/"+p[0]; }
+function daysSince(s){ if(!s) return 9999; var t=new Date(todayISO()); var x=new Date(String(s).substring(0,10)); return Math.round((t-x)/86400000); }
+function uid(p){ return p+Math.random().toString(36).substring(2,7); }
+function configured(v){ return v && v.indexOf("PASTE_")<0 && v.indexOf("YOUR_")<0; }
+
+var STATUSES=["Pending","Partially Fulfilled","Fulfilled","In Transit","Canceled"];
+function badgeClass(s){ if(s==="Pending")return"b-pending";if(s==="Fulfilled")return"b-fulfilled";if(s==="Partially Fulfilled")return"b-partial";if(s==="In Transit")return"b-transit";if(s==="Canceled")return"b-canceled";return"b-pending"; }
+function statusBadge(s){ return '<span class="badge '+badgeClass(s)+'"><span class="dot"></span>'+X(s)+'</span>'; }
+
+/* ---------- state ---------- */
+var CFG={categories:[],items:[],stores:[],announcements:[],users:[]};
+var ORDERS=[];
+function catName(id){ for(var i=0;i<CFG.categories.length;i++){ if(CFG.categories[i].id===id) return CFG.categories[i].name; } return id; }
+function itemById(id){ for(var i=0;i<CFG.items.length;i++){ if(CFG.items[i].id===id) return CFG.items[i]; } return null; }
+function storeName(c){ for(var i=0;i<CFG.stores.length;i++){ if(CFG.stores[i].code===c) return CFG.stores[i].name; } return c; }
+function orderById(id){ for(var i=0;i<ORDERS.length;i++){ if(ORDERS[i].orderId===id) return ORDERS[i]; } return null; }
+function orderUnits(o){ var n=0,it=o.items||[]; for(var i=0;i<it.length;i++) n+=(it[i].qty||0); return n; }
+
+/* ---------- sample fallback (so the dashboard works before wiring) ---------- */
+var SAMPLE_ORDERS=[
+  {orderId:"SO-20260525-4821",employee:"Maria Santos",store:"RI-02",orderDate:"2026-05-25",status:"Pending",po:"",tracking:"",notes:"Need receipt paper ASAP.",updatedBy:"",items:[{id:"op1",name:"Receipt Paper Rolls",cat:"ops",qty:6},{id:"of3",name:"Copy Paper",cat:"office",qty:2},{id:"cl3",name:"Paper Towels",cat:"clean",qty:4}]},
+  {orderId:"SO-20260525-4790",employee:"DeShawn Carter",store:"TN-01",orderDate:"2026-05-25",status:"In Transit",po:"PO-5589",tracking:"1Z999AA10123456784",notes:"",updatedBy:"HQ Admin",items:[{id:"of1",name:"Pens — Black (12 pk)",cat:"office",qty:3},{id:"cl2",name:"Disinfectant Wipes",cat:"clean",qty:6},{id:"op3",name:"Security Tags",cat:"ops",qty:2}]},
+  {orderId:"SO-20260524-4612",employee:"Aisha Khan",store:"CT-03",orderDate:"2026-05-24",status:"Partially Fulfilled",po:"PO-5582",tracking:"",notes:"Toner backordered.",updatedBy:"HQ Admin",items:[{id:"of7",name:"Printer Toner",cat:"office",qty:2,fulfill:"unavail"},{id:"of3",name:"Copy Paper",cat:"office",qty:1,fulfill:"ok"},{id:"cl1",name:"Glass Cleaner",cat:"clean",qty:3,fulfill:"ok"}]},
+  {orderId:"SO-20260523-4501",employee:"Tom Reilly",store:"MA-01",orderDate:"2026-05-23",status:"Fulfilled",po:"PO-5574",tracking:"1Z999AA10987654321",notes:"",updatedBy:"HQ Admin",dateFulfilled:"2026-05-24",items:[{id:"op1",name:"Receipt Paper Rolls",cat:"ops",qty:4},{id:"op7",name:"Batteries (AA)",cat:"ops",qty:5},{id:"cl5",name:"Trash Bags",cat:"clean",qty:2}]},
+  {orderId:"SO-20260522-4399",employee:"Bianca Lopez",store:"AR-01",orderDate:"2026-05-22",status:"Fulfilled",po:"PO-5571",tracking:"1Z999AA10222233344",notes:"",updatedBy:"HQ Admin",dateFulfilled:"2026-05-23",items:[{id:"mk2",name:"Counter Cards",cat:"mktg",qty:2},{id:"mk3",name:"Price Tag Holders",cat:"mktg",qty:3},{id:"of4",name:"Sticky Notes",cat:"office",qty:6}]},
+  {orderId:"SO-20260521-4290",employee:"Kevin Park",store:"CT-01",orderDate:"2026-05-21",status:"Canceled",po:"",tracking:"",notes:"Duplicate.",updatedBy:"HQ Admin",items:[{id:"cl3",name:"Paper Towels",cat:"clean",qty:4}]},
+  {orderId:"SO-20260520-4177",employee:"Rosa Mendes",store:"RI-01",orderDate:"2026-05-20",status:"Fulfilled",po:"PO-5560",tracking:"1Z999AA10555566677",notes:"",updatedBy:"HQ Admin",dateFulfilled:"2026-05-21",items:[{id:"of3",name:"Copy Paper",cat:"office",qty:3},{id:"op1",name:"Receipt Paper Rolls",cat:"ops",qty:5},{id:"cl2",name:"Disinfectant Wipes",cat:"clean",qty:8}]},
+  {orderId:"SO-20260519-4066",employee:"James Wu",store:"TN-02",orderDate:"2026-05-19",status:"Pending",po:"",tracking:"",notes:"",updatedBy:"",items:[{id:"mk1",name:"Window Poster — Promo",cat:"mktg",qty:1},{id:"mk4",name:"Pull-Up Banner",cat:"mktg",qty:1}]},
+  {orderId:"SO-20260515-3954",employee:"Priya Nair",store:"AR-02",orderDate:"2026-05-15",status:"Fulfilled",po:"PO-5540",tracking:"1Z999AA10888899900",notes:"",updatedBy:"HQ Admin",dateFulfilled:"2026-05-16",items:[{id:"of5",name:"Stapler",cat:"office",qty:2},{id:"of6",name:"Staples (box)",cat:"office",qty:4}]}
+];
+
+/* ---------- load config ---------- */
+function loadConfig(cb){
+  fetch(CONFIG.DATA_URL,{cache:"no-store"})
+    .then(function(r){ if(!r.ok) throw 0; return r.json(); })
+    .then(function(j){ CFG={categories:j.categories||[],items:j.items||[],stores:j.stores||[],announcements:j.announcements||[],users:j.users||[]}; lsSet("supplyCFG",CFG); if(cb)cb(); })
+    .catch(function(){ var c=lsGet("supplyCFG",null); if(c) CFG=c; if(cb)cb(); });
+}
+
+/* ---------- load orders ---------- */
+function normalizeOrder(o){
+  var get=function(){ for(var i=0;i<arguments.length;i++){ if(o[arguments[i]]!=null && o[arguments[i]]!=="") return o[arguments[i]]; } return ""; };
+  var items=get("items","Items","itemsJson");
+  if(typeof items==="string"){ try{ items=JSON.parse(items); }catch(e){ items=[]; } }
+  if(!items) items=[];
+  return {
+    orderId:get("orderId","OrderId","Title","Order_x0020_ID")||uid("SO-"),
+    employee:get("employee","Employee"),
+    store:get("store","Store","StoreCode"),
+    orderDate:String(get("orderDate","OrderDate","Created")||"").substring(0,10),
+    status:get("status","Status")||"Pending",
+    po:get("po","PO","PONumber"),
+    tracking:get("tracking","Tracking","TrackingNumber"),
+    notes:get("notes","Notes"),
+    fulfillmentNotes:get("fulfillmentNotes","FulfillmentNotes"),
+    dateFulfilled:String(get("dateFulfilled","DateFulfilled")||"").substring(0,10),
+    updatedBy:get("updatedBy","UpdatedBy"),
+    items:items
+  };
+}
+function loadOrders(showSpin){
+  setLive("loading","Loading…");
+  if(!configured(CONFIG.GET_ORDERS_FLOW_URL)){
+    ORDERS=lsGet("supplyOrders",null)||SAMPLE_ORDERS.slice();
+    setLive("sample","Sample data — wire the Get flow");
+    renderDash(DASH.section); return;
+  }
+  fetch(CONFIG.GET_ORDERS_FLOW_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"})
+    .then(function(r){ if(!r.ok) throw 0; return r.json(); })
+    .then(function(data){
+      var arr = data.value || data.orders || data || [];
+      if(!(arr instanceof Array)) arr=[];
+      ORDERS=[]; for(var i=0;i<arr.length;i++) ORDERS.push(normalizeOrder(arr[i]));
+      ORDERS.sort(function(a,b){ return a.orderDate<b.orderDate?1:-1; });
+      lsSet("supplyOrders",ORDERS);
+      setLive("ok","Live — "+ORDERS.length+" orders");
+      renderDash(DASH.section);
+    })
+    .catch(function(){
+      ORDERS=lsGet("supplyOrders",null)||SAMPLE_ORDERS.slice();
+      setLive("err","Sync error — showing cached");
+      renderDash(DASH.section);
+    });
+}
+function setLive(state,txt){
+  var el=$("live"); el.className="livebadge"+(state==="err"||state==="sample"?" err":"");
+  $("live-txt").innerText=txt;
+}
+function countStatus(s){ var n=0; for(var i=0;i<ORDERS.length;i++){ if(ORDERS[i].status===s) n++; } return n; }
+function closeModal(){ $("modal-bg").className="modal-bg"; }
+
+function boot(){ loadConfig(function(){ DASH.section="overview"; loadOrders(); }); }
+boot();
+
+/* ============================================================
+   HQ DASHBOARD
+   ============================================================ */
+var DASH={section:"overview",fStore:"",fStatus:"",fFrom:"",fTo:"",q:""};
+var DASH_TABS=[
+  {id:"overview",label:"Overview",ic:"&#9632;"},
+  {id:"orders",label:"All Orders",ic:"&#9776;"},
+  {id:"bystore",label:"By Store",ic:"&#127970;"},
+  {id:"activity",label:"Store Activity",ic:"&#9201;"},
+  {id:"items",label:"Top Items",ic:"&#9650;"},
+  {id:"analytics",label:"Analytics",ic:"&#128202;"},
+  {id:"admin",label:"Admin",ic:"&#9881;"}
+];
+function renderDash(section){
+  if(section) DASH.section=section;
+  var h='<div class="tabs">';
+  for(var i=0;i<DASH_TABS.length;i++){ var t=DASH_TABS[i]; h+='<button class="'+(DASH.section===t.id?'on':'')+'" onclick="renderDash(\''+t.id+'\')"><i>'+t.ic+'</i>'+t.label+'</button>'; }
+  h+='</div>';
+  var s=DASH.section;
+  if(s==="overview") h+=dOverview();
+  else if(s==="orders") h+=dOrders();
+  else if(s==="bystore") h+=dByStore();
+  else if(s==="activity") h+=dActivity();
+  else if(s==="items") h+=dItems();
+  else if(s==="analytics") h+=dAnalytics();
+  else if(s==="admin"){ if(ADMIN.unlocked){ renderAdmin(); } else { $("wrap").innerHTML='<div class="tabs">'+tabsHTML()+'</div>'+adminGate(); } return; }
+  $("wrap").innerHTML=h;
+}
+function tabsHTML(){ var h=""; for(var i=0;i<DASH_TABS.length;i++){ var t=DASH_TABS[i]; h+='<button class="'+(DASH.section===t.id?'on':'')+'" onclick="renderDash(\''+t.id+'\')"><i>'+t.ic+'</i>'+t.label+'</button>'; } return h; }
+
+function ordRow(o){
+  return '<tr class="click" onclick="openOrder(\''+X(o.orderId)+'\')"><td><span class="ordid">'+X(o.orderId)+'</span></td><td>'+X(o.employee)+'</td><td>'+X(o.store)+'</td><td class="muted">'+fmtDate(o.orderDate)+'</td><td>'+orderUnits(o)+'</td><td>'+statusBadge(o.status)+'</td></tr>';
+}
+function dOverview(){
+  var h='<div class="tiles">';
+  h+='<div class="tile"><div class="lbl">Total Orders</div><div class="val">'+ORDERS.length+'</div><div class="delta">all time</div></div>';
+  h+='<div class="tile a"><div class="lbl">Pending</div><div class="val">'+countStatus("Pending")+'</div><div class="delta">needs action</div></div>';
+  h+='<div class="tile g"><div class="lbl">Fulfilled</div><div class="val">'+countStatus("Fulfilled")+'</div></div>';
+  h+='<div class="tile b"><div class="lbl">Partially Fulfilled</div><div class="val">'+countStatus("Partially Fulfilled")+'</div></div>';
+  h+='<div class="tile p"><div class="lbl">In Transit</div><div class="val">'+countStatus("In Transit")+'</div></div>';
+  h+='<div class="tile r"><div class="lbl">Canceled</div><div class="val">'+countStatus("Canceled")+'</div></div>';
+  h+='</div><div class="split two">';
+  h+='<div class="card"><div class="pad" style="padding-bottom:0"><div class="section-title">Recent orders</div><div class="section-sub">Click any row to open the order detail.</div></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Order</th><th>Employee</th><th>Store</th><th>Date</th><th>Units</th><th>Status</th></tr></thead><tbody>';
+  var recent=ORDERS.slice(0,6);
+  if(recent.length===0) h+='<tr><td colspan="6"><div class="empty">No orders yet.</div></td></tr>';
+  for(var i=0;i<recent.length;i++) h+=ordRow(recent[i]);
+  h+='</tbody></table></div></div>';
+  var q14=quietStores(14,30).length,q30=quietStores(30,99999).length;
+  h+='<div class="card pad"><div class="section-title">Needs attention</div><div class="section-sub">Quick alerts</div>';
+  h+='<div class="alertcard warn"><div class="big">'+countStatus("Pending")+'</div><div><div style="font-weight:600;font-size:13px">Pending orders</div><div class="muted" style="font-size:12px">Awaiting PO / fulfillment</div></div></div>';
+  h+='<div class="alertcard danger"><div class="big">'+q30+'</div><div><div style="font-weight:600;font-size:13px">Stores quiet 30+ days</div><div class="muted" style="font-size:12px">See Store Activity</div></div></div>';
+  h+='<div class="alertcard warn"><div class="big">'+q14+'</div><div><div style="font-weight:600;font-size:13px">Stores quiet 14+ days</div><div class="muted" style="font-size:12px">See Store Activity</div></div></div>';
+  h+='</div></div>';
+  return h;
+}
+
+function filteredOrders(){
+  var out=[];
+  for(var i=0;i<ORDERS.length;i++){
+    var o=ORDERS[i];
+    if(DASH.fStore && o.store!==DASH.fStore) continue;
+    if(DASH.fStatus && o.status!==DASH.fStatus) continue;
+    if(DASH.fFrom && o.orderDate<DASH.fFrom) continue;
+    if(DASH.fTo && o.orderDate>DASH.fTo) continue;
+    if(DASH.q){ var s=(o.orderId+" "+o.employee).toLowerCase(); if(s.indexOf(DASH.q.toLowerCase())<0) continue; }
+    out.push(o);
+  }
+  return out;
+}
+function dFilters(){
+  var so='<option value="">All stores</option>';
+  for(var i=0;i<CFG.stores.length;i++){ so+='<option value="'+X(CFG.stores[i].code)+'"'+(DASH.fStore===CFG.stores[i].code?' selected':'')+'>'+X(CFG.stores[i].code)+'</option>'; }
+  var st='<option value="">All statuses</option>';
+  for(var j=0;j<STATUSES.length;j++){ st+='<option value="'+STATUSES[j]+'"'+(DASH.fStatus===STATUSES[j]?' selected':'')+'>'+STATUSES[j]+'</option>'; }
+  return '<div class="filters"><input placeholder="Search order # or name…" value="'+X(DASH.q)+'" oninput="DASH.q=this.value;renderDash()"><select onchange="DASH.fStore=this.value;renderDash()">'+so+'</select><select onchange="DASH.fStatus=this.value;renderDash()">'+st+'</select><input type="date" value="'+DASH.fFrom+'" onchange="DASH.fFrom=this.value;renderDash()"><input type="date" value="'+DASH.fTo+'" onchange="DASH.fTo=this.value;renderDash()"></div>';
+}
+function dOrders(){
+  var list=filteredOrders();
+  var h='<div class="row-between"><div><div class="section-title">All orders</div><div class="section-sub">'+list.length+' order(s) match your filters</div></div><div style="display:flex;gap:8px"><button class="btn btn-ghost btn-sm" onclick="exportCSV()">&#11015; Export CSV</button><button class="btn btn-ghost btn-sm" onclick="window.print()">&#128424; Print</button></div></div>';
+  h+=dFilters();
+  h+='<div class="card"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Order</th><th>Employee</th><th>Store</th><th>Date</th><th>Units</th><th>Status</th></tr></thead><tbody>';
+  if(list.length===0) h+='<tr><td colspan="6"><div class="empty">No orders match.</div></td></tr>';
+  for(var i=0;i<list.length;i++) h+=ordRow(list[i]);
+  h+='</tbody></table></div></div>';
+  return h;
+}
+function dByStore(){
+  var map={},order=[];
+  for(var i=0;i<ORDERS.length;i++){ var s=ORDERS[i].store; if(!map[s]){ map[s]=[]; order.push(s); } map[s].push(ORDERS[i]); }
+  var h='<div class="section-title">Orders by store</div><div class="section-sub">Grouped by location across all states.</div>';
+  if(order.length===0) h+='<div class="card pad"><div class="empty">No orders yet.</div></div>';
+  for(var k=0;k<order.length;k++){
+    var code=order[k],rows=map[code];
+    h+='<div class="card" style="margin-bottom:14px"><div class="pad" style="padding-bottom:8px"><div class="row-between" style="margin-bottom:0"><div><strong>'+X(code)+'</strong> <span class="muted">— '+X(storeName(code))+'</span></div><span class="chip">'+rows.length+' order(s)</span></div></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Order</th><th>Employee</th><th>Date</th><th>Units</th><th>Status</th></tr></thead><tbody>';
+    for(var r=0;r<rows.length;r++){ h+='<tr class="click" onclick="openOrder(\''+X(rows[r].orderId)+'\')"><td><span class="ordid">'+X(rows[r].orderId)+'</span></td><td>'+X(rows[r].employee)+'</td><td class="muted">'+fmtDate(rows[r].orderDate)+'</td><td>'+orderUnits(rows[r])+'</td><td>'+statusBadge(rows[r].status)+'</td></tr>'; }
+    h+='</tbody></table></div></div>';
+  }
+  return h;
+}
+function lastOrderByStore(){ var last={}; for(var i=0;i<ORDERS.length;i++){ var s=ORDERS[i].store; if(!last[s]||ORDERS[i].orderDate>last[s]) last[s]=ORDERS[i].orderDate; } return last; }
+function quietStores(minD,maxD){
+  var last=lastOrderByStore(),out=[];
+  for(var k=0;k<CFG.stores.length;k++){ var c=CFG.stores[k].code,d=last[c],ago=daysSince(d); if(ago>=minD&&ago<maxD) out.push({code:c,ago:ago,d:d}); }
+  return out;
+}
+function dActivity(){
+  var q14=quietStores(14,30),q30=quietStores(30,99999);
+  var active=CFG.stores.length-q14.length-q30.length;
+  var h='<div class="section-title">Store activity tracker</div><div class="section-sub">Spot locations that have gone quiet (vs today).</div>';
+  h+='<div class="tiles"><div class="tile r"><div class="lbl">No order 30+ days</div><div class="val">'+q30.length+'</div></div><div class="tile a"><div class="lbl">No order 14+ days</div><div class="val">'+q14.length+'</div></div><div class="tile g"><div class="lbl">Active stores</div><div class="val">'+active+'</div></div></div>';
+  h+=activityTable("Quiet 30+ days","var(--red)",q30,"b-canceled");
+  h+='<div style="height:14px"></div>';
+  h+=activityTable("Quiet 14+ days","var(--amber)",q14,"b-pending");
+  return h;
+}
+function activityTable(title,color,rows,bcls){
+  var h='<div class="card"><div class="pad"><strong style="color:'+color+'">&#9888; '+title+'</strong></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Store</th><th>Location</th><th>Last order</th><th>Days ago</th></tr></thead><tbody>';
+  if(rows.length===0) h+='<tr><td colspan="4"><div class="empty">None.</div></td></tr>';
+  for(var i=0;i<rows.length;i++){ h+='<tr><td><strong>'+X(rows[i].code)+'</strong></td><td class="muted">'+X(storeName(rows[i].code))+'</td><td>'+(rows[i].d?fmtDate(rows[i].d):"Never")+'</td><td><span class="badge '+bcls+'">'+(rows[i].ago>9000?"Never":rows[i].ago+"d")+'</span></td></tr>'; }
+  h+='</tbody></table></div></div>';
+  return h;
+}
+function dItems(){
+  var tally={};
+  for(var i=0;i<ORDERS.length;i++){ var it=ORDERS[i].items||[]; for(var j=0;j<it.length;j++){ var k=it[j].id||it[j].name; tally[k]={n:(tally[k]?tally[k].n:0)+(it[j].qty||0),name:it[j].name||(itemById(k)?itemById(k).name:k)}; } }
+  var arr=[]; for(var key in tally) arr.push({n:tally[key].n,name:tally[key].name});
+  arr.sort(function(a,b){ return b.n-a.n; });
+  var max=arr.length?arr[0].n:1;
+  var h='<div class="section-title">Top requested items</div><div class="section-sub">Total units requested across all orders.</div><div class="card pad"><div class="barchart">';
+  if(arr.length===0) h+='<div class="empty">No item data yet.</div>';
+  for(var x=0;x<arr.length;x++){ var pct=Math.round(arr[x].n/max*100); h+='<div class="barrow"><div>'+X(String(arr[x].name).replace(/\s*\(.*\)/,""))+'</div><div class="track"><div class="fill" style="width:'+pct+'%"></div></div><div class="n">'+arr[x].n+'</div></div>'; }
+  h+='</div></div>';
+  return h;
+}
+function dAnalytics(){
+  var byCat={},byStatus={};
+  for(var i=0;i<ORDERS.length;i++){ byStatus[ORDERS[i].status]=(byStatus[ORDERS[i].status]||0)+1; var it=ORDERS[i].items||[]; for(var j=0;j<it.length;j++){ var c=it[j].cat||(itemById(it[j].id)?itemById(it[j].id).cat:"?"); byCat[c]=(byCat[c]||0)+(it[j].qty||0); } }
+  var h='<div class="section-title">Analytics</div><div class="section-sub">Snapshot of demand and order flow.</div><div class="split two">';
+  h+='<div class="card pad"><strong style="font-size:13px">Units by category</strong><div class="barchart" style="margin-top:12px">'+bars(byCat,function(k){return catName(k).replace(" Supplies","").replace(" / Signage","");})+'</div></div>';
+  h+='<div class="card pad"><strong style="font-size:13px">Orders by status</strong><div class="barchart" style="margin-top:12px">'+bars(byStatus,function(k){return k;})+'</div></div>';
+  h+='</div>';
+  return h;
+}
+function bars(obj,labelFn){
+  var max=1,h=""; for(var k in obj){ if(obj[k]>max) max=obj[k]; }
+  for(var kk in obj){ var p=Math.round(obj[kk]/max*100); h+='<div class="barrow"><div style="font-size:11.5px">'+X(labelFn(kk))+'</div><div class="track"><div class="fill" style="width:'+p+'%"></div></div><div class="n">'+obj[kk]+'</div></div>'; }
+  if(h==="") h='<div class="empty">No data yet.</div>';
+  return h;
+}
+
+/* ---------- CSV export ---------- */
+function exportCSV(){
+  var list=filteredOrders();
+  var rows=[["Order ID","Employee","Store","Store Name","Order Date","Status","Units","PO Number","Tracking","Date Fulfilled","Updated By","Notes","Items"]];
+  for(var i=0;i<list.length;i++){
+    var o=list[i],itxt=[]; var it=o.items||[];
+    for(var j=0;j<it.length;j++) itxt.push((it[j].qty||0)+"x "+(it[j].name||it[j].id));
+    rows.push([o.orderId,o.employee,o.store,storeName(o.store),o.orderDate,o.status,orderUnits(o),o.po,o.tracking,o.dateFulfilled||"",o.updatedBy||"",o.notes||"",itxt.join("; ")]);
+  }
+  var csv=rows.map(function(r){ return r.map(function(c){ c=String(c==null?"":c); return '"'+c.replace(/"/g,'""')+'"'; }).join(","); }).join("\n");
+  download("edgelink-supply-orders-"+todayISO()+".csv",csv,"text/csv");
+}
+function download(name,text,mime){
+  var blob=new Blob([text],{type:mime||"text/plain"});
+  var a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+/* ============================================================
+   ORDER DETAIL MODAL
+   ============================================================ */
+var MODAL_ORDER=null;
+function openOrder(id){
+  var o=orderById(id); if(!o) return; MODAL_ORDER=o;
+  var statusSel='<select id="m-status" style="padding:7px 10px;border:1px solid var(--line);border-radius:8px;font-family:Montserrat;font-size:12.5px">';
+  for(var i=0;i<STATUSES.length;i++){ statusSel+='<option'+(o.status===STATUSES[i]?' selected':'')+'>'+STATUSES[i]+'</option>'; }
+  statusSel+='</select>';
+  var h='<div class="modal-head"><div><div style="font-family:Bebas Neue;font-size:24px;letter-spacing:.5px">'+X(o.orderId)+'</div><div style="font-size:12px;opacity:.85">'+X(o.employee)+' &middot; '+X(o.store)+' &middot; '+fmtDate(o.orderDate)+'</div></div><button class="x" onclick="closeModal()">&times;</button></div><div class="modal-body">';
+  h+='<div class="kv"><div class="k">Status</div><div>'+statusBadge(o.status)+'</div>';
+  h+='<div class="k">Store</div><div>'+X(storeName(o.store))+'</div>';
+  h+='<div class="k">PO number</div><div><input id="m-po" value="'+X(o.po)+'" placeholder="Add PO #" style="padding:6px 9px;border:1px solid var(--line);border-radius:7px;font-size:12.5px;width:180px"></div>';
+  h+='<div class="k">Tracking #</div><div><input id="m-track" value="'+X(o.tracking)+'" placeholder="Add tracking #" style="padding:6px 9px;border:1px solid var(--line);border-radius:7px;font-size:12.5px;width:220px"></div>';
+  h+='<div class="k">Update status</div><div>'+statusSel+'</div>';
+  if(o.dateFulfilled) h+='<div class="k">Date fulfilled</div><div>'+fmtDate(o.dateFulfilled)+'</div>';
+  if(o.updatedBy) h+='<div class="k">Updated by</div><div>'+X(o.updatedBy)+'</div>';
+  h+='</div>';
+  if(o.notes) h+='<div style="background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:11px 14px;font-size:12.5px;margin-bottom:16px"><strong>Employee note:</strong> '+X(o.notes)+'</div>';
+  h+='<strong style="font-size:13px">Items &amp; fulfillment</strong><div class="tbl-wrap" style="margin-top:8px"><table class="tbl" style="min-width:0"><thead><tr><th>Item</th><th>Qty</th><th>Mark as</th></tr></thead><tbody>';
+  var it=o.items||[];
+  for(var j=0;j<it.length;j++){
+    var f=it[j].fulfill||"";
+    h+='<tr><td>'+X(it[j].name||it[j].id)+'</td><td>'+(it[j].qty||0)+'</td><td><select id="m-f-'+j+'" style="padding:6px 9px;border:1px solid var(--line);border-radius:7px;font-size:12px"><option value=""'+(f===""?' selected':'')+'>—</option><option value="ok"'+(f==="ok"?' selected':'')+'>Fulfilled</option><option value="part"'+(f==="part"?' selected':'')+'>Partially</option><option value="unavail"'+(f==="unavail"?' selected':'')+'>Unavailable</option></select></td></tr>';
+  }
+  h+='</tbody></table></div><div class="field" style="margin-top:14px"><label>Internal notes (HQ only)</label><textarea id="m-fnotes" placeholder="Fulfillment notes, vendor info, etc.">'+X(o.fulfillmentNotes)+'</textarea></div>';
+  h+='<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:6px"><button class="btn btn-ghost btn-sm" onclick="window.print()">&#128424; Print</button><button class="btn btn-primary btn-sm" onclick="saveOrder()">Save changes</button></div></div>';
+  $("modal-inner").innerHTML=h; $("modal-bg").className="modal-bg show";
+}
+function saveOrder(){
+  var o=MODAL_ORDER; if(!o) return;
+  o.status=$("m-status").value; o.po=$("m-po").value; o.tracking=$("m-track").value; o.fulfillmentNotes=$("m-fnotes").value;
+  var it=o.items||[]; for(var j=0;j<it.length;j++){ var sel=$("m-f-"+j); if(sel) it[j].fulfill=sel.value; }
+  if(o.status==="Fulfilled" && !o.dateFulfilled) o.dateFulfilled=todayISO();
+  o.updatedBy="HQ Admin";
+  lsSet("supplyOrders",ORDERS);
+  if(configured(CONFIG.UPDATE_ORDER_FLOW_URL)){
+    fetch(CONFIG.UPDATE_ORDER_FLOW_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(o)}).catch(function(){});
+  }
+  closeModal(); renderDash(DASH.section);
+}
+
+/* ============================================================
+   ADMIN CENTER (PIN gated) — combined into dashboard
+   ============================================================ */
+var ADMIN={unlocked:false,tab:"office",dirty:false};
+var ADMIN_TABS=[
+  {id:"office",label:"Office Supplies"},{id:"clean",label:"Cleaning Supplies"},
+  {id:"ops",label:"Store Ops"},{id:"mktg",label:"Marketing / Signage"},
+  {id:"stores",label:"Stores"},{id:"announce",label:"Announcements"},
+  {id:"users",label:"Users"},{id:"settings",label:"Settings"}
+];
+function adminGate(){
+  return '<div class="card pad pin"><div class="lock">&#128274;</div><div class="section-title">Admin Center</div><div class="section-sub">Enter your PIN to manage the order form.</div><div class="field"><input id="pin-in" maxlength="8" placeholder="••••" onkeyup="if(event.key===\'Enter\')tryPin()"></div><button class="btn btn-primary" style="width:100%;justify-content:center" onclick="tryPin()">Unlock</button></div>';
+}
+function tryPin(){ if($("pin-in").value===String(CONFIG.ADMIN_PIN)){ ADMIN.unlocked=true; renderAdmin(); } else alert("Incorrect PIN."); }
+function renderAdmin(tab){
+  if(tab) ADMIN.tab=tab;
+  var h='<div class="tabs">'+tabsHTML()+'</div>';
+  h+='<div class="tabs">'; for(var i=0;i<ADMIN_TABS.length;i++){ var t=ADMIN_TABS[i]; h+='<button class="'+(ADMIN.tab===t.id?'on':'')+'" onclick="renderAdmin(\''+t.id+'\')">'+t.label+'</button>'; } h+='</div>';
+  if(ADMIN.dirty) h+='<div class="card pub pad row-between" style="margin-bottom:16px"><div><strong style="color:var(--purple)">You have unpublished changes</strong><div class="section-sub" style="margin:3px 0 0">Publish to push them to the live order form.</div></div><button class="btn btn-primary" onclick="renderAdmin(\'settings\')">Go to publish &#8594;</button></div>';
+  var t=ADMIN.tab;
+  if(t==="office"||t==="clean"||t==="ops"||t==="mktg") h+=aItems(t);
+  else if(t==="stores") h+=aStores();
+  else if(t==="announce") h+=aAnnounce();
+  else if(t==="users") h+=aUsers();
+  else if(t==="settings") h+=aSettings();
+  $("wrap").innerHTML=h;
+}
+function markDirty(){ ADMIN.dirty=true; lsSet("supplyCFG",CFG); }
+
+function aItems(cat){
+  var h='<div class="row-between"><div><div class="section-title">'+X(catName(cat))+'</div><div class="section-sub">Add, edit, or retire items. Publish to push to the order form.</div></div><button class="btn btn-primary btn-sm" onclick="editItem(-1,\''+cat+'\')">&#43; Add item</button></div><div class="card pad"><div class="adminlist">';
+  var any=false;
+  for(var i=0;i<CFG.items.length;i++){ var it=CFG.items[i]; if(it.cat!==cat) continue; any=true;
+    h+='<div class="li"><div><div class="nm">'+X(it.name)+'</div><div class="meta">per '+X(it.unit)+(it.reorder?' &middot; <span style="color:var(--amber)">'+X(it.reorder)+'</span>':'')+'</div></div><div class="acts"><button class="toggle'+(it.active?'':' off')+'" title="Active" onclick="toggleItem('+i+')"></button><button class="iconbtn" title="Edit" onclick="editItem('+i+',\''+cat+'\')">&#9998;</button><button class="iconbtn" title="Remove" onclick="removeItem('+i+')">&#128465;</button></div></div>';
+  }
+  if(!any) h+='<div class="empty">No items in this category yet.</div>';
+  h+='</div></div>';
+  return h;
+}
+function toggleItem(i){ CFG.items[i].active=!CFG.items[i].active; markDirty(); renderAdmin(); }
+function removeItem(i){ if(confirm("Remove \""+CFG.items[i].name+"\"?")){ CFG.items.splice(i,1); markDirty(); renderAdmin(); } }
+function editItem(i,cat){
+  var it = i<0 ? {id:uid("it"),cat:cat,name:"",unit:"each",active:true,reorder:""} : CFG.items[i];
+  var catOpts=""; for(var c=0;c<CFG.categories.length;c++){ catOpts+='<option value="'+X(CFG.categories[c].id)+'"'+(it.cat===CFG.categories[c].id?' selected':'')+'>'+X(CFG.categories[c].name)+'</option>'; }
+  openEditor((i<0?"Add item":"Edit item"),
+    '<div class="field"><label>Item name</label><input id="e-name" value="'+X(it.name)+'" placeholder="e.g. Copy Paper"></div>'+
+    '<div class="field"><label>Category</label><select id="e-cat">'+catOpts+'</select></div>'+
+    '<div class="field"><label>Unit</label><input id="e-unit" value="'+X(it.unit)+'" placeholder="each / pack / case"></div>'+
+    '<div class="field"><label>Reorder limit / warning note (optional)</label><input id="e-reorder" value="'+X(it.reorder)+'" placeholder="e.g. Limit 2 cases / week"></div>'+
+    '<div class="field"><label><input type="checkbox" id="e-active" '+(it.active?'checked':'')+' style="width:auto;margin-right:6px">Active (shows on the order form)</label></div>',
+    function(){
+      it.name=$("e-name").value; it.cat=$("e-cat").value; it.unit=$("e-unit").value; it.reorder=$("e-reorder").value; it.active=$("e-active").checked;
+      if(!it.name){ alert("Name is required."); return false; }
+      if(i<0) CFG.items.push(it);
+      markDirty(); ADMIN.tab=it.cat; renderAdmin(); return true;
+    });
+}
+function aStores(){
+  var h='<div class="row-between"><div><div class="section-title">Stores</div><div class="section-sub">Manage the store dropdown shown on the order form.</div></div><button class="btn btn-primary btn-sm" onclick="editStore(-1)">&#43; Add store</button></div><div class="card pad"><div class="adminlist">';
+  if(CFG.stores.length===0) h+='<div class="empty">No stores yet.</div>';
+  for(var i=0;i<CFG.stores.length;i++){ h+='<div class="li"><div><div class="nm">'+X(CFG.stores[i].code)+' — '+X(CFG.stores[i].name)+'</div><div class="meta">'+X(CFG.stores[i].state)+'</div></div><div class="acts"><button class="iconbtn" onclick="editStore('+i+')">&#9998;</button><button class="iconbtn" onclick="removeStore('+i+')">&#128465;</button></div></div>'; }
+  h+='</div></div>';
+  return h;
+}
+function removeStore(i){ if(confirm("Remove store "+CFG.stores[i].code+"?")){ CFG.stores.splice(i,1); markDirty(); renderAdmin(); } }
+function editStore(i){
+  var s=i<0?{code:"",name:"",state:""}:CFG.stores[i];
+  openEditor((i<0?"Add store":"Edit store"),
+    '<div class="field"><label>Store code</label><input id="e-code" value="'+X(s.code)+'" placeholder="e.g. TN-03"></div>'+
+    '<div class="field"><label>Location name</label><input id="e-sname" value="'+X(s.name)+'" placeholder="e.g. Knoxville — Kingston Pike"></div>'+
+    '<div class="field"><label>State</label><input id="e-state" value="'+X(s.state)+'" placeholder="AR / CT / MA / RI / TN" maxlength="2"></div>',
+    function(){ s.code=$("e-code").value.toUpperCase(); s.name=$("e-sname").value; s.state=$("e-state").value.toUpperCase(); if(!s.code){ alert("Store code required."); return false; } if(i<0) CFG.stores.push(s); markDirty(); renderAdmin(); return true; });
+}
+function aAnnounce(){
+  var h='<div class="row-between"><div><div class="section-title">Announcements</div><div class="section-sub">These banners appear at the top of the order form.</div></div><button class="btn btn-primary btn-sm" onclick="editAnn(-1)">&#43; Add</button></div><div class="card pad"><div class="adminlist">';
+  if(CFG.announcements.length===0) h+='<div class="empty">No announcements.</div>';
+  for(var i=0;i<CFG.announcements.length;i++){ var a=CFG.announcements[i]; h+='<div class="li"><div><div class="nm">'+X(a.title)+'</div><div class="meta">'+X(a.body)+'</div></div><div class="acts"><button class="toggle'+(a.active?'':' off')+'" onclick="toggleAnn('+i+')"></button><button class="iconbtn" onclick="editAnn('+i+')">&#9998;</button><button class="iconbtn" onclick="removeAnn('+i+')">&#128465;</button></div></div>'; }
+  h+='</div></div>';
+  return h;
+}
+function toggleAnn(i){ CFG.announcements[i].active=!CFG.announcements[i].active; markDirty(); renderAdmin(); }
+function removeAnn(i){ if(confirm("Remove this announcement?")){ CFG.announcements.splice(i,1); markDirty(); renderAdmin(); } }
+function editAnn(i){
+  var a=i<0?{title:"",body:"",active:true}:CFG.announcements[i];
+  openEditor((i<0?"Add announcement":"Edit announcement"),
+    '<div class="field"><label>Title</label><input id="e-atitle" value="'+X(a.title)+'"></div>'+
+    '<div class="field"><label>Message</label><textarea id="e-abody">'+X(a.body)+'</textarea></div>'+
+    '<div class="field"><label><input type="checkbox" id="e-aactive" '+(a.active?'checked':'')+' style="width:auto;margin-right:6px">Show on order form</label></div>',
+    function(){ a.title=$("e-atitle").value; a.body=$("e-abody").value; a.active=$("e-aactive").checked; if(!a.title){ alert("Title required."); return false; } if(i<0) CFG.announcements.push(a); markDirty(); renderAdmin(); return true; });
+}
+function aUsers(){
+  var h='<div class="row-between"><div><div class="section-title">Dashboard users</div><div class="section-sub">Who can view or manage the Supply Order Center.</div></div><button class="btn btn-primary btn-sm" onclick="editUser(-1)">&#43; Add user</button></div><div class="card pad"><div class="adminlist">';
+  if(CFG.users.length===0) h+='<div class="empty">No users yet.</div>';
+  for(var i=0;i<CFG.users.length;i++){ var u=CFG.users[i]; var ini=String(u.name||"?").split(" ").map(function(p){return p.charAt(0);}).join("").substring(0,2).toUpperCase();
+    h+='<div class="li"><div style="width:38px;height:38px;border-radius:50%;background:var(--gray-bg);color:var(--purple);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13px">'+ini+'</div><div><div class="nm">'+X(u.name)+'</div><div class="meta">'+X(u.email)+' &middot; '+X(u.role)+'</div></div><div class="acts"><button class="toggle'+(u.active?'':' off')+'" onclick="toggleUser('+i+')"></button><button class="iconbtn" onclick="editUser('+i+')">&#9998;</button><button class="iconbtn" onclick="removeUser('+i+')">&#128465;</button></div></div>'; }
+  h+='</div></div>';
+  return h;
+}
+function toggleUser(i){ CFG.users[i].active=!CFG.users[i].active; markDirty(); renderAdmin(); }
+function removeUser(i){ if(confirm("Remove "+CFG.users[i].name+"?")){ CFG.users.splice(i,1); markDirty(); renderAdmin(); } }
+function editUser(i){
+  var u=i<0?{name:"",email:"",role:"Coach / Viewer",active:true}:CFG.users[i];
+  var roles=["Admin","Fulfillment","Coach / Viewer"],ro="";
+  for(var r=0;r<roles.length;r++) ro+='<option'+(u.role===roles[r]?' selected':'')+'>'+roles[r]+'</option>';
+  openEditor((i<0?"Add user":"Edit user"),
+    '<div class="field"><label>Name</label><input id="e-uname" value="'+X(u.name)+'"></div>'+
+    '<div class="field"><label>Email</label><input id="e-uemail" value="'+X(u.email)+'"></div>'+
+    '<div class="field"><label>Role</label><select id="e-urole">'+ro+'</select></div>'+
+    '<div class="field"><label><input type="checkbox" id="e-uactive" '+(u.active?'checked':'')+' style="width:auto;margin-right:6px">Active</label></div>',
+    function(){ u.name=$("e-uname").value; u.email=$("e-uemail").value; u.role=$("e-urole").value; u.active=$("e-uactive").checked; if(!u.name){ alert("Name required."); return false; } if(i<0) CFG.users.push(u); markDirty(); renderAdmin(); return true; });
+}
+function aSettings(){
+  var h='<div class="section-title">Settings</div><div class="section-sub">Categories / form tabs, PIN, and publishing.</div>';
+  h+='<div class="card pad" style="margin-bottom:14px"><strong style="font-size:13px">Form tabs / categories</strong><div class="section-sub" style="margin-top:4px">Renaming a category renames its order-form step automatically.</div>';
+  for(var i=0;i<CFG.categories.length;i++){ h+='<span class="chip">'+X(CFG.categories[i].name)+' <button class="iconbtn" style="width:24px;height:24px;font-size:11px;margin-left:4px" onclick="renameCat('+i+')">&#9998;</button> <button class="iconbtn" style="width:24px;height:24px;font-size:11px" onclick="removeCat('+i+')">&times;</button></span>'; }
+  h+='<div style="margin-top:10px"><button class="btn btn-ghost btn-sm" onclick="addCat()">&#43; Add category</button></div></div>';
+  h+='<div class="card pad" style="margin-bottom:14px"><strong style="font-size:13px">Admin PIN</strong><div class="section-sub" style="margin-top:4px">Set in the CONFIG block at the top of this file. Current PIN length: '+String(CONFIG.ADMIN_PIN).length+' digits.</div></div>';
+  h+='<div class="card pub pad"><div class="row-between" style="margin-bottom:8px"><div><strong style="font-size:14px;color:var(--purple)">Publish to live order form</strong><div class="section-sub" style="margin-top:3px">Push item, store, category &amp; announcement changes to data.json on GitHub Pages.</div></div></div>';
+  h+='<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-primary" onclick="publishConfig()">&#11014; Save &amp; publish</button><button class="btn btn-ghost" onclick="downloadConfig()">&#11015; Download data.json</button><button class="btn btn-ghost" onclick="copyConfig()">&#128203; Copy JSON</button></div>';
+  h+='<div class="section-sub" style="margin-top:10px;margin-bottom:0">Fallback: if the publish flow isn\'t set up (or fails like the accessory one did), download/copy data.json and commit it to <strong>'+X(CONFIG.GITHUB.owner)+'/'+X(CONFIG.GITHUB.repo)+'</strong>.</div></div>';
+  return h;
+}
+function addCat(){ var n=prompt("New category name:"); if(!n) return; var step=CFG.categories.length+2; CFG.categories.push({id:uid("cat"),name:n,step:step}); markDirty(); renderAdmin(); }
+function renameCat(i){ var n=prompt("Rename category:",CFG.categories[i].name); if(!n) return; CFG.categories[i].name=n; markDirty(); renderAdmin(); }
+function removeCat(i){ var c=CFG.categories[i]; var hasItems=false; for(var x=0;x<CFG.items.length;x++){ if(CFG.items[x].cat===c.id){ hasItems=true; break; } } if(hasItems){ alert("Move or remove items in \""+c.name+"\" first."); return; } if(confirm("Remove category \""+c.name+"\"?")){ CFG.categories.splice(i,1); markDirty(); renderAdmin(); } }
+
+/* ---------- publish ---------- */
+function buildJSON(){
+  var out={ _comment:"Edgelink Supply Order Center config.", version:(lsGet("supplyCFG",{}).version||1)+1, updated:todayISO(),
+    categories:CFG.categories, items:CFG.items, stores:CFG.stores, announcements:CFG.announcements, users:CFG.users };
+  return JSON.stringify(out,null,2);
+}
+function publishConfig(){
+  var json=buildJSON();
+  if(configured(CONFIG.PUBLISH_CONFIG_FLOW_URL)){
+    fetch(CONFIG.PUBLISH_CONFIG_FLOW_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({path:CONFIG.GITHUB.path,content:json,branch:CONFIG.GITHUB.branch})})
+      .then(function(r){ if(!r.ok) throw 0; ADMIN.dirty=false; alert("Published. The order form will pick it up on next load."); renderAdmin(); })
+      .catch(function(){ alert("Publish flow failed. Use Download / Copy and commit data.json to GitHub manually."); downloadConfig(); });
+  } else {
+    alert("No publish flow configured yet — downloading data.json so you can commit it to GitHub.");
+    downloadConfig(); ADMIN.dirty=false; renderAdmin();
+  }
+}
+function downloadConfig(){ download("data.json",buildJSON(),"application/json"); }
+function copyConfig(){
+  var json=buildJSON();
+  if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(json).then(function(){ alert("data.json copied. Paste it into GitHub."); }); }
+  else { var t=document.createElement("textarea"); t.value=json; document.body.appendChild(t); t.select(); try{document.execCommand("copy");}catch(e){} document.body.removeChild(t); alert("data.json copied."); }
+}
+
+/* ---------- generic editor modal ---------- */
+var EDITOR_SAVE=null;
+function openEditor(title,fieldsHTML,onSave){
+  EDITOR_SAVE=onSave;
+  var h='<div class="modal-head"><div style="font-family:Bebas Neue;font-size:22px;letter-spacing:.5px">'+X(title)+'</div><button class="x" onclick="closeModal()">&times;</button></div><div class="modal-body">'+fieldsHTML+'<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px"><button class="btn btn-ghost btn-sm" onclick="closeModal()">Cancel</button><button class="btn btn-primary btn-sm" onclick="runEditorSave()">Save</button></div></div>';
+  $("modal-inner").innerHTML=h; $("modal-bg").className="modal-bg show";
+}
+function runEditorSave(){ if(EDITOR_SAVE){ var ok=EDITOR_SAVE(); if(ok!==false) closeModal(); } }
+</script>
+</body>
+</html>
