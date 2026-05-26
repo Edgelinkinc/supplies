@@ -34,14 +34,6 @@
       "reorder": ""
     },
     {
-      "id": "of2",
-      "cat": "office",
-      "name": "Pens — Blue (12 pk)",
-      "unit": "pack",
-      "active": true,
-      "reorder": ""
-    },
-    {
       "id": "of3",
       "cat": "office",
       "name": "Copy Paper",
@@ -76,18 +68,10 @@
     {
       "id": "of7",
       "cat": "office",
-      "name": "Printer Toner",
+      "name": "Printer Ink",
       "unit": "each",
       "active": true,
       "reorder": "Confirm printer model"
-    },
-    {
-      "id": "of8",
-      "cat": "office",
-      "name": "File Folders",
-      "unit": "pack",
-      "active": true,
-      "reorder": ""
     },
     {
       "id": "of9",
