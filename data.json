@@ -1,70 +1,479 @@
 {
-  "_comment": "Edgelink Supply Order Center config. Edit in the dashboard Admin Center, or by hand here. The order form reads this on load.",
-  "version": 1,
+  "_comment": "Edgelink Supply Order Center config.",
+  "version": 2,
   "updated": "2026-05-26",
   "categories": [
-    { "id": "office", "name": "Office Supplies", "step": 2 },
-    { "id": "clean",  "name": "Cleaning Supplies", "step": 3 },
-    { "id": "ops",    "name": "Store Operations Supplies", "step": 4 },
-    { "id": "mktg",   "name": "Marketing / Signage", "step": 5 }
+    {
+      "id": "office",
+      "name": "Office Supplies",
+      "step": 2
+    },
+    {
+      "id": "clean",
+      "name": "Cleaning Supplies",
+      "step": 3
+    },
+    {
+      "id": "ops",
+      "name": "Store Operations Supplies",
+      "step": 4
+    },
+    {
+      "id": "mktg",
+      "name": "Marketing / Signage",
+      "step": 5
+    }
   ],
   "items": [
-    { "id": "of1",  "cat": "office", "name": "Pens — Black (12 pk)", "unit": "pack", "active": true,  "reorder": "" },
-    { "id": "of2",  "cat": "office", "name": "Pens — Blue (12 pk)",  "unit": "pack", "active": true,  "reorder": "" },
-    { "id": "of3",  "cat": "office", "name": "Copy Paper",           "unit": "case", "active": true,  "reorder": "Limit 2 cases / week" },
-    { "id": "of4",  "cat": "office", "name": "Sticky Notes",         "unit": "pack", "active": true,  "reorder": "" },
-    { "id": "of5",  "cat": "office", "name": "Stapler",              "unit": "each", "active": true,  "reorder": "" },
-    { "id": "of6",  "cat": "office", "name": "Staples (box)",        "unit": "box",  "active": true,  "reorder": "" },
-    { "id": "of7",  "cat": "office", "name": "Printer Toner",        "unit": "each", "active": true,  "reorder": "Confirm printer model" },
-    { "id": "of8",  "cat": "office", "name": "File Folders",         "unit": "pack", "active": true,  "reorder": "" },
-    { "id": "of9",  "cat": "office", "name": "Packing Tape",         "unit": "roll", "active": true,  "reorder": "" },
-
-    { "id": "cl1",  "cat": "clean",  "name": "Glass Cleaner",        "unit": "bottle",   "active": true, "reorder": "" },
-    { "id": "cl2",  "cat": "clean",  "name": "Disinfectant Wipes",   "unit": "canister", "active": true, "reorder": "" },
-    { "id": "cl3",  "cat": "clean",  "name": "Paper Towels",         "unit": "roll",     "active": true, "reorder": "" },
-    { "id": "cl4",  "cat": "clean",  "name": "Hand Sanitizer",       "unit": "bottle",   "active": true, "reorder": "" },
-    { "id": "cl5",  "cat": "clean",  "name": "Trash Bags",           "unit": "box",      "active": true, "reorder": "" },
-    { "id": "cl6",  "cat": "clean",  "name": "Floor Cleaner",        "unit": "bottle",   "active": true, "reorder": "" },
-    { "id": "cl7",  "cat": "clean",  "name": "Microfiber Cloths",    "unit": "pack",     "active": true, "reorder": "" },
-    { "id": "cl8",  "cat": "clean",  "name": "Air Freshener",        "unit": "can",      "active": true, "reorder": "" },
-
-    { "id": "op1",  "cat": "ops",    "name": "Receipt Paper Rolls",  "unit": "box",    "active": true, "reorder": "High use — order ahead" },
-    { "id": "op2",  "cat": "ops",    "name": "Shopping Bags",        "unit": "bundle", "active": true, "reorder": "" },
-    { "id": "op3",  "cat": "ops",    "name": "Security Tags",        "unit": "pack",   "active": true, "reorder": "" },
-    { "id": "op4",  "cat": "ops",    "name": "SIM Card Trays",       "unit": "pack",   "active": true, "reorder": "" },
-    { "id": "op5",  "cat": "ops",    "name": "Device Cleaning Kit",  "unit": "each",   "active": true, "reorder": "" },
-    { "id": "op6",  "cat": "ops",    "name": "Label Maker Tape",     "unit": "roll",   "active": true, "reorder": "" },
-    { "id": "op7",  "cat": "ops",    "name": "Batteries (AA)",       "unit": "pack",   "active": true, "reorder": "" },
-    { "id": "op8",  "cat": "ops",    "name": "Cash Drawer Liner",    "unit": "pack",   "active": true, "reorder": "" },
-
-    { "id": "mk1",  "cat": "mktg",   "name": "Window Poster — Promo","unit": "each",   "active": true, "reorder": "HQ approval needed" },
-    { "id": "mk2",  "cat": "mktg",   "name": "Counter Cards",        "unit": "pack",   "active": true, "reorder": "" },
-    { "id": "mk3",  "cat": "mktg",   "name": "Price Tag Holders",    "unit": "pack",   "active": true, "reorder": "" },
-    { "id": "mk4",  "cat": "mktg",   "name": "Pull-Up Banner",       "unit": "each",   "active": true, "reorder": "HQ approval needed" },
-    { "id": "mk5",  "cat": "mktg",   "name": "Promo Flyers",         "unit": "bundle", "active": true, "reorder": "" }
+    {
+      "id": "of1",
+      "cat": "office",
+      "name": "Pens — Black (12 pk)",
+      "unit": "pack",
+      "active": true,
+      "reorder": ""
+    },
+    {
+      "id": "of2",
+      "cat": "office",
+      "name": "Pens — Blue (12 pk)",
+      "unit": "pack",
+      "active": true,
+      "reorder": ""
+    },
+    {
+      "id": "of3",
+      "cat": "office",
+      "name": "Copy Paper",
+      "unit": "case",
+      "active": true,
+      "reorder": "Limit 2 cases / week"
+    },
+    {
+      "id": "of4",
+      "cat": "office",
+      "name": "Sticky Notes",
+      "unit": "pack",
+      "active": true,
+      "reorder": ""
+    },
+    {
+      "id": "of5",
+      "cat": "office",
+      "name": "Stapler",
+      "unit": "each",
+      "active": true,
+      "reorder": ""
+    },
+    {
+      "id": "of6",
+      "cat": "office",
+      "name": "Staples (box)",
+      "unit": "box",
+      "active": true,
+      "reorder": ""
+    },
+    {
+      "id": "of7",
+      "cat": "office",
+      "name": "Printer Toner",
+      "unit": "each",
+      "active": true,
+      "reorder": "Confirm printer model"
+    },
+    {
+      "id": "of8",
+      "cat": "office",
+      "name": "File Folders",
+      "unit": "pack",
+      "active": true,
+      "reorder": ""
+    },
+    {
+      "id": "of9",
+      "cat": "office",
+      "name": "Packing Tape",
+      "unit": "roll",
+      "active": true,
+      "reorder": ""
+    },
+    {
+      "id": "cl1",
+      "cat": "clean",
+      "name": "Glass Cleaner",
+      "unit": "bottle",
+      "active": true,
+      "reorder": ""
+    },
+    {
+      "id": "cl2",
+      "cat": "clean",
+      "name": "Disinfectant Wipes",
+      "unit": "canister",
+      "active": true,
+      "reorder": ""
+    },
+    {
+      "id": "cl3",
+      "cat": "clean",
+      "name": "Paper Towels",
+      "unit": "roll",
+      "active": true,
+      "reorder": ""
+    },
+    {
+      "id": "cl4",
+      "cat": "clean",
+      "name": "Hand Sanitizer",
+      "unit": "bottle",
+      "active": true,
+      "reorder": ""
+    },
+    {
+      "id": "cl5",
+      "cat": "clean",
+      "name": "Trash Bags",
+      "unit": "box",
+      "active": true,
+      "reorder": ""
+    },
+    {
+      "id": "cl6",
+      "cat": "clean",
+      "name": "Floor Cleaner",
+      "unit": "bottle",
+      "active": true,
+      "reorder": ""
+    },
+    {
+      "id": "cl7",
+      "cat": "clean",
+      "name": "Microfiber Cloths",
+      "unit": "pack",
+      "active": true,
+      "reorder": ""
+    },
+    {
+      "id": "cl8",
+      "cat": "clean",
+      "name": "Air Freshener",
+      "unit": "can",
+      "active": true,
+      "reorder": ""
+    },
+    {
+      "id": "op1",
+      "cat": "ops",
+      "name": "Receipt Paper Rolls",
+      "unit": "box",
+      "active": true,
+      "reorder": "High use — order ahead"
+    },
+    {
+      "id": "op2",
+      "cat": "ops",
+      "name": "Shopping Bags",
+      "unit": "bundle",
+      "active": true,
+      "reorder": ""
+    },
+    {
+      "id": "op3",
+      "cat": "ops",
+      "name": "Security Tags",
+      "unit": "pack",
+      "active": true,
+      "reorder": ""
+    },
+    {
+      "id": "op4",
+      "cat": "ops",
+      "name": "SIM Card Trays",
+      "unit": "pack",
+      "active": true,
+      "reorder": ""
+    },
+    {
+      "id": "op5",
+      "cat": "ops",
+      "name": "Device Cleaning Kit",
+      "unit": "each",
+      "active": true,
+      "reorder": ""
+    },
+    {
+      "id": "op6",
+      "cat": "ops",
+      "name": "Label Maker Tape",
+      "unit": "roll",
+      "active": true,
+      "reorder": ""
+    },
+    {
+      "id": "op7",
+      "cat": "ops",
+      "name": "Batteries (AA)",
+      "unit": "pack",
+      "active": true,
+      "reorder": ""
+    },
+    {
+      "id": "op8",
+      "cat": "ops",
+      "name": "Cash Drawer Liner",
+      "unit": "pack",
+      "active": true,
+      "reorder": ""
+    },
+    {
+      "id": "mk1",
+      "cat": "mktg",
+      "name": "Window Poster — Promo",
+      "unit": "each",
+      "active": true,
+      "reorder": "HQ approval needed"
+    },
+    {
+      "id": "mk2",
+      "cat": "mktg",
+      "name": "Counter Cards",
+      "unit": "pack",
+      "active": true,
+      "reorder": ""
+    },
+    {
+      "id": "mk3",
+      "cat": "mktg",
+      "name": "Price Tag Holders",
+      "unit": "pack",
+      "active": true,
+      "reorder": ""
+    },
+    {
+      "id": "mk4",
+      "cat": "mktg",
+      "name": "Pull-Up Banner",
+      "unit": "each",
+      "active": true,
+      "reorder": "HQ approval needed"
+    },
+    {
+      "id": "mk5",
+      "cat": "mktg",
+      "name": "Promo Flyers",
+      "unit": "bundle",
+      "active": true,
+      "reorder": ""
+    }
   ],
   "stores": [
-    { "code": "AR-01", "name": "Little Rock — Main St",   "state": "AR" },
-    { "code": "AR-02", "name": "North Little Rock",       "state": "AR" },
-    { "code": "AR-03", "name": "Conway",                  "state": "AR" },
-    { "code": "CT-01", "name": "Hartford — Park St",      "state": "CT" },
-    { "code": "CT-02", "name": "Bridgeport",              "state": "CT" },
-    { "code": "CT-03", "name": "New Haven",               "state": "CT" },
-    { "code": "MA-01", "name": "Boston — Dorchester",     "state": "MA" },
-    { "code": "MA-02", "name": "Springfield",             "state": "MA" },
-    { "code": "RI-01", "name": "Providence — Broad St",   "state": "RI" },
-    { "code": "RI-02", "name": "Warwick HQ Store",        "state": "RI" },
-    { "code": "TN-01", "name": "Memphis — Poplar",        "state": "TN" },
-    { "code": "TN-02", "name": "Nashville — Gallatin",    "state": "TN" }
+    {
+      "code": "AR-COLONEL GLENN",
+      "name": "AR-COLONEL GLENN",
+      "state": "AR"
+    },
+    {
+      "code": "AR-RADIO GEYER",
+      "name": "AR-RADIO GEYER",
+      "state": "AR"
+    },
+    {
+      "code": "CT-BUCKLAND HILLS MALL",
+      "name": "CT-BUCKLAND HILLS MALL",
+      "state": "CT"
+    },
+    {
+      "code": "CT-NEW LONDON",
+      "name": "CT-NEW LONDON",
+      "state": "CT"
+    },
+    {
+      "code": "CT-NORWICH",
+      "name": "CT-NORWICH",
+      "state": "CT"
+    },
+    {
+      "code": "MA- SOUTH SHORE MALL",
+      "name": "MA- SOUTH SHORE MALL",
+      "state": "MA"
+    },
+    {
+      "code": "MA-CAPE CODE MALL",
+      "name": "MA-CAPE CODE MALL",
+      "state": "MA"
+    },
+    {
+      "code": "MA-COGGESHALL",
+      "name": "MA-COGGESHALL",
+      "state": "MA"
+    },
+    {
+      "code": "MA-EXCHANGE ST.",
+      "name": "MA-EXCHANGE ST.",
+      "state": "MA"
+    },
+    {
+      "code": "MA-FALLRIVER",
+      "name": "MA-FALLRIVER",
+      "state": "MA"
+    },
+    {
+      "code": "MA-HOLYOKE",
+      "name": "MA-HOLYOKE",
+      "state": "MA"
+    },
+    {
+      "code": "MA-KELLEY SQUARE",
+      "name": "MA-KELLEY SQUARE",
+      "state": "MA"
+    },
+    {
+      "code": "MA-LOCUST STREET",
+      "name": "MA-LOCUST STREET",
+      "state": "MA"
+    },
+    {
+      "code": "MA-ROCKDALE",
+      "name": "MA-ROCKDALE",
+      "state": "MA"
+    },
+    {
+      "code": "MA-STATE STREET",
+      "name": "MA-STATE STREET",
+      "state": "MA"
+    },
+    {
+      "code": "MA-WESTERN AVE",
+      "name": "MA-WESTERN AVE",
+      "state": "MA"
+    },
+    {
+      "code": "RI-751BROAD",
+      "name": "RI-751BROAD",
+      "state": "RI"
+    },
+    {
+      "code": "RI-BALD HILL",
+      "name": "RI-BALD HILL",
+      "state": "RI"
+    },
+    {
+      "code": "RI-BROAD ST",
+      "name": "RI-BROAD ST",
+      "state": "RI"
+    },
+    {
+      "code": "RI-BROADWAY",
+      "name": "RI-BROADWAY",
+      "state": "RI"
+    },
+    {
+      "code": "RI-COVENTRY",
+      "name": "RI-COVENTRY",
+      "state": "RI"
+    },
+    {
+      "code": "RI-DOUGLAS",
+      "name": "RI-DOUGLAS",
+      "state": "RI"
+    },
+    {
+      "code": "RI-EAST PROVIDENCE",
+      "name": "RI-EAST PROVIDENCE",
+      "state": "RI"
+    },
+    {
+      "code": "RI-HARTFORD AVE",
+      "name": "RI-HARTFORD AVE",
+      "state": "RI"
+    },
+    {
+      "code": "RI-NEWPORT AVE",
+      "name": "RI-NEWPORT AVE",
+      "state": "RI"
+    },
+    {
+      "code": "RI-PROVIDENCE PLACE MALL",
+      "name": "RI-PROVIDENCE PLACE MALL",
+      "state": "RI"
+    },
+    {
+      "code": "RI-RESERVOIR AVE",
+      "name": "RI-RESERVOIR AVE",
+      "state": "RI"
+    },
+    {
+      "code": "TN-KEITH ST",
+      "name": "TN-KEITH ST",
+      "state": "TN"
+    },
+    {
+      "code": "TN-MAGNOLIA",
+      "name": "TN-MAGNOLIA",
+      "state": "TN"
+    },
+    {
+      "code": "TN-MORRISTOWN",
+      "name": "TN-MORRISTOWN",
+      "state": "TN"
+    },
+    {
+      "code": "TN-NORTH BROARDWAY",
+      "name": "TN-NORTH BROARDWAY",
+      "state": "TN"
+    },
+    {
+      "code": "TN-SHALLOWFORD RD",
+      "name": "TN-SHALLOWFORD RD",
+      "state": "TN"
+    },
+    {
+      "code": "TN-WEST MARKET",
+      "name": "TN-WEST MARKET",
+      "state": "TN"
+    },
+    {
+      "code": "TN-WESTERN AVE",
+      "name": "TN-WESTERN AVE",
+      "state": "TN"
+    }
   ],
   "announcements": [
-    { "title": "Order cutoff is Thursday 5 PM CST", "body": "Orders placed after cutoff ship the following week. Plan ahead for receipt paper and bags.", "active": true },
-    { "title": "Marketing items require HQ approval", "body": "Window posters and banners are reviewed before fulfillment.", "active": true }
+    {
+      "title": "Order cutoff is Thursday 5 PM CST",
+      "body": "Orders placed after cutoff ship the following week. Plan ahead for receipt paper and bags.",
+      "active": true
+    },
+    {
+      "title": "Marketing items require HQ approval",
+      "body": "Window posters and banners are reviewed before fulfillment.",
+      "active": true
+    }
   ],
   "users": [
-    { "name": "Cheryl Birchfield", "email": "hr@edgelinkinc.com",   "role": "Admin",          "active": true },
-    { "name": "Rose Perez",        "email": "rose@edgelinkinc.com", "role": "Coach / Viewer", "active": true },
-    { "name": "Joel Montero",      "email": "joel@edgelinkinc.com", "role": "Coach / Viewer", "active": true },
-    { "name": "Manny Rivera",      "email": "manny@edgelinkinc.com","role": "Fulfillment",    "active": true }
+    {
+      "name": "Cheryl Birchfield",
+      "email": "hr@edgelinkinc.com",
+      "role": "Admin",
+      "active": true
+    },
+    {
+      "name": "Rose Perez",
+      "email": "rose@edgelinkinc.com",
+      "role": "Coach / Viewer",
+      "active": true
+    },
+    {
+      "name": "Joel Montero",
+      "email": "joel@edgelinkinc.com",
+      "role": "Coach / Viewer",
+      "active": true
+    },
+    {
+      "name": "Manny Rivera",
+      "email": "manny@edgelinkinc.com",
+      "role": "Fulfillment",
+      "active": true
+    }
   ]
 }
