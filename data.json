@@ -1,7 +1,8 @@
 {
   "_comment": "Edgelink Supply Order Center config. Edit in the dashboard Admin Center, or by hand here. The order form reads this on load.",
-  "version": 1,
-  "updated": "2026-05-26",
+  "version": 2,
+  "updated": "2026-06-08",
+  "auditSettings": { "auditor": "Ambulai Sheku" },
   "categories": [
     { "id": "office", "name": "Office Supplies", "step": 2 },
     { "id": "clean",  "name": "Cleaning Supplies", "step": 3 },
@@ -18,7 +19,6 @@
     { "id": "of7",  "cat": "office", "name": "Printer Toner",        "unit": "each", "active": true,  "reorder": "Confirm printer model" },
     { "id": "of8",  "cat": "office", "name": "File Folders",         "unit": "pack", "active": true,  "reorder": "" },
     { "id": "of9",  "cat": "office", "name": "Packing Tape",         "unit": "roll", "active": true,  "reorder": "" },
-
     { "id": "cl1",  "cat": "clean",  "name": "Glass Cleaner",        "unit": "bottle",   "active": true, "reorder": "" },
     { "id": "cl2",  "cat": "clean",  "name": "Disinfectant Wipes",   "unit": "canister", "active": true, "reorder": "" },
     { "id": "cl3",  "cat": "clean",  "name": "Paper Towels",         "unit": "roll",     "active": true, "reorder": "" },
@@ -27,7 +27,6 @@
     { "id": "cl6",  "cat": "clean",  "name": "Floor Cleaner",        "unit": "bottle",   "active": true, "reorder": "" },
     { "id": "cl7",  "cat": "clean",  "name": "Microfiber Cloths",    "unit": "pack",     "active": true, "reorder": "" },
     { "id": "cl8",  "cat": "clean",  "name": "Air Freshener",        "unit": "can",      "active": true, "reorder": "" },
-
     { "id": "op1",  "cat": "ops",    "name": "Receipt Paper Rolls",  "unit": "box",    "active": true, "reorder": "High use — order ahead" },
     { "id": "op2",  "cat": "ops",    "name": "Shopping Bags",        "unit": "bundle", "active": true, "reorder": "" },
     { "id": "op3",  "cat": "ops",    "name": "Security Tags",        "unit": "pack",   "active": true, "reorder": "" },
@@ -36,7 +35,6 @@
     { "id": "op6",  "cat": "ops",    "name": "Label Maker Tape",     "unit": "roll",   "active": true, "reorder": "" },
     { "id": "op7",  "cat": "ops",    "name": "Batteries (AA)",       "unit": "pack",   "active": true, "reorder": "" },
     { "id": "op8",  "cat": "ops",    "name": "Cash Drawer Liner",    "unit": "pack",   "active": true, "reorder": "" },
-
     { "id": "mk1",  "cat": "mktg",   "name": "Window Poster — Promo","unit": "each",   "active": true, "reorder": "HQ approval needed" },
     { "id": "mk2",  "cat": "mktg",   "name": "Counter Cards",        "unit": "pack",   "active": true, "reorder": "" },
     { "id": "mk3",  "cat": "mktg",   "name": "Price Tag Holders",    "unit": "pack",   "active": true, "reorder": "" },
@@ -44,27 +42,51 @@
     { "id": "mk5",  "cat": "mktg",   "name": "Promo Flyers",         "unit": "bundle", "active": true, "reorder": "" }
   ],
   "stores": [
-    { "code": "AR-01", "name": "Little Rock — Main St",   "state": "AR" },
-    { "code": "AR-02", "name": "North Little Rock",       "state": "AR" },
-    { "code": "AR-03", "name": "Conway",                  "state": "AR" },
-    { "code": "CT-01", "name": "Hartford — Park St",      "state": "CT" },
-    { "code": "CT-02", "name": "Bridgeport",              "state": "CT" },
-    { "code": "CT-03", "name": "New Haven",               "state": "CT" },
-    { "code": "MA-01", "name": "Boston — Dorchester",     "state": "MA" },
-    { "code": "MA-02", "name": "Springfield",             "state": "MA" },
-    { "code": "RI-01", "name": "Providence — Broad St",   "state": "RI" },
-    { "code": "RI-02", "name": "Warwick HQ Store",        "state": "RI" },
-    { "code": "TN-01", "name": "Memphis — Poplar",        "state": "TN" },
-    { "code": "TN-02", "name": "Nashville — Gallatin",    "state": "TN" }
+    { "code": "RI-COVENTRY",              "name": "Coventry",            "state": "RI", "coach": "Ambulai Sheku",    "email": "coventry@edgelinkinc.com" },
+    { "code": "RI-RESERVOIR AVE",         "name": "Cranston",            "state": "RI", "coach": "Ambulai Sheku",    "email": "ReservoirAve@edgelinkinc.com" },
+    { "code": "MA-CAPE CODE MALL",        "name": "Hyannis",             "state": "MA", "coach": "Ambulai Sheku",    "email": "capecodmall@edgelinkinc.com" },
+    { "code": "RI-BROADWAY",              "name": "Newport",             "state": "RI", "coach": "Ambulai Sheku",    "email": "broadway@edgelinkinc.com" },
+    { "code": "RI-DOUGLAS",               "name": "Providence",          "state": "RI", "coach": "Ambulai Sheku",    "email": "DouglasAve@edgelinkinc.com" },
+    { "code": "TN-WEST MARKET",           "name": "Johnson City",        "state": "TN", "coach": "Cheryl Birchfield","email": "westmarket@edgelinkinc.com" },
+    { "code": "MA-LOCUST STREET",         "name": "Locust Street",       "state": "MA", "coach": "Joel Montero",     "email": "locustst@edgelinkinc.com" },
+    { "code": "MA-EXCHANGE ST.",          "name": "Exchange St",         "state": "MA", "coach": "Joel Montero",     "email": "exchangest@edgelinkinc.com" },
+    { "code": "MA-HOLYOKE",               "name": "Holyoke",             "state": "MA", "coach": "Joel Montero",     "email": "holyoke@edgelinkinc.com" },
+    { "code": "MA-STATE STREET",          "name": "State Street",        "state": "MA", "coach": "Joel Montero",     "email": "statest@edgelinkinc.com" },
+    { "code": "MA-COGGESHALL",            "name": "Coggeshall",          "state": "MA", "coach": "Manny Rivera",     "email": "coggeshall@edgelinkinc.com" },
+    { "code": "MA-FALLRIVER",             "name": "Fall River",          "state": "MA", "coach": "Manny Rivera",     "email": "FallRiver@edgelinkinc.com" },
+    { "code": "MA-ROCKDALE",              "name": "Rockdale",            "state": "MA", "coach": "Manny Rivera",     "email": "rockdale@edgelinkinc.com" },
+    { "code": "TN-MORRISTOWN",            "name": "Morristown",          "state": "TN", "coach": "Mr. Watts",        "email": "morristown@edgelinkinc.com" },
+    { "code": "TN-KEITH ST",              "name": "Cleveland",           "state": "TN", "coach": "Mr. Watts",        "email": "keithst@edgelinkinc.com" },
+    { "code": "TN-SHALLOWFORD RD",        "name": "Chattanooga",         "state": "TN", "coach": "Mr. Watts",        "email": "shallowford@edgelinkinc.com" },
+    { "code": "TN-MAGNOLIA",              "name": "Knoxville — Magnolia","state": "TN", "coach": "Mr. Watts",        "email": "magnolia@edgelinkinc.com" },
+    { "code": "TN-NORTH BROARDWAY",       "name": "Knoxville — N Broadway","state":"TN","coach": "Mr. Watts",        "email": "northbroadway@edgelinkinc.com" },
+    { "code": "TN-WESTERN AVE",           "name": "Knoxville — Western", "state": "TN", "coach": "Mr. Watts",        "email": "westernavetn@edgelinkinc.com" },
+    { "code": "MA-KELLEY SQUARE",         "name": "Kelley Square",       "state": "MA", "coach": "Rose Perez",       "email": "kelleysquare@edgelinkinc.com" },
+    { "code": "MA-WESTERN AVE",           "name": "Western Ave",         "state": "MA", "coach": "Rose Perez",       "email": "westernavema@edgelinkinc.com" },
+    { "code": "RI-751BROAD",              "name": "751 Broad",           "state": "RI", "coach": "Rose Perez",       "email": "751BroadStreet@edgelinkinc.com" },
+    { "code": "RI-BROAD ST",              "name": "Central Falls",       "state": "RI", "coach": "Rose Perez",       "email": "broadst@edgelinkinc.com" },
+    { "code": "MA- SOUTH SHORE MALL",     "name": "South Shore Mall",    "state": "MA", "coach": "Rose Perez",       "email": "southshoreplaza@edgelinkinc.com" },
+    { "code": "RI-HARTFORD AVE",          "name": "Providence — Hartford","state":"RI", "coach": "Rose Perez",       "email": "hartfordave@edgelinkinc.com" },
+    { "code": "RI-NEWPORT AVE",           "name": "Rumford",             "state": "RI", "coach": "Rose Perez",       "email": "newportave@edgelinkinc.com" },
+    { "code": "RI-PROVIDENCE PLACE MALL", "name": "Providence Place",    "state": "RI", "coach": "Rose Perez",       "email": "provplacemall@edgelinkinc.com" },
+    { "code": "CT-BUCKLAND HILLS MALL",   "name": "Buckland Hills Mall", "state": "CT", "coach": "TBD",              "email": "bucklandhillsmall@edgelinkinc.com" },
+    { "code": "CT-NEW LONDON",            "name": "New London",          "state": "CT", "coach": "TBD",              "email": "newlondon@edgelinkinc.com" },
+    { "code": "CT-NORWICH",               "name": "Norwich",             "state": "CT", "coach": "TBD",              "email": "norwich@edgelinkinc.com" },
+    { "code": "RI-EAST PROVIDENCE",       "name": "East Providence",     "state": "RI", "coach": "TBD",              "email": "eastprovidence@edgelinkinc.com" },
+    { "code": "RI-BALD HILL",             "name": "Warwick — Bald Hill", "state": "RI", "coach": "TBD",              "email": "baldhillrd@edgelinkinc.com" },
+    { "code": "AR-RADIO GEYER",           "name": "Radio / Geyer",       "state": "AR", "coach": "TBD",              "email": "radiogeyer@edgelinkinc.com" },
+    { "code": "AR-COLONEL GLENN",         "name": "Colonel Glenn",       "state": "AR", "coach": "TBD",              "email": "colonelglenn@edgelinkinc.com" }
   ],
   "announcements": [
-    { "title": "Order cutoff is Thursday 5 PM CST", "body": "Orders placed after cutoff ship the following week. Plan ahead for receipt paper and bags.", "active": true },
+    { "title": "Order cutoff is Thursday 5 PM", "body": "Orders placed after cutoff ship the following week. Plan ahead for receipt paper and bags.", "active": true },
     { "title": "Marketing items require HQ approval", "body": "Window posters and banners are reviewed before fulfillment.", "active": true }
   ],
   "users": [
-    { "name": "Cheryl Birchfield", "email": "hr@edgelinkinc.com",   "role": "Admin",          "active": true },
-    { "name": "Rose Perez",        "email": "rose@edgelinkinc.com", "role": "Coach / Viewer", "active": true },
-    { "name": "Joel Montero",      "email": "joel@edgelinkinc.com", "role": "Coach / Viewer", "active": true },
-    { "name": "Manny Rivera",      "email": "manny@edgelinkinc.com","role": "Fulfillment",    "active": true }
+    { "name": "Cheryl Birchfield", "email": "hr@edgelinkinc.com",                  "role": "Admin",          "active": true },
+    { "name": "Ambulai Sheku",     "email": "ambulai@edgelinkinc.com",             "role": "Coach / Viewer", "active": true },
+    { "name": "Rose Perez",        "email": "rose@edgelinkinc.com",                "role": "Coach / Viewer", "active": true },
+    { "name": "Joel Montero",      "email": "joel@edgelinkinc.com",                "role": "Coach / Viewer", "active": true },
+    { "name": "Manny Rivera",      "email": "manny@edgelinkinc.com",               "role": "Coach / Viewer", "active": true },
+    { "name": "Mr. Watts",         "email": "watts@edgelinkinc.com",               "role": "Coach / Viewer", "active": true }
   ]
 }

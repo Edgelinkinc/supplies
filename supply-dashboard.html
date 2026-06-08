@@ -587,20 +587,24 @@ function editItem(i,cat){
     });
 }
 function aStores(){
-  var h='<div class="row-between"><div><div class="section-title">Stores</div><div class="section-sub">Manage the store dropdown shown on the order form.</div></div><button class="btn btn-primary btn-sm" onclick="editStore(-1)">&#43; Add store</button></div><div class="card pad"><div class="adminlist">';
+  var h='<div class="row-between"><div><div class="section-title">Stores</div><div class="section-sub">Manage the store dropdown shown on the order form. Code, name, state, coach, and email are all editable.</div></div><button class="btn btn-primary btn-sm" onclick="editStore(-1)">&#43; Add store</button></div><div class="card pad"><div class="adminlist">';
   if(CFG.stores.length===0) h+='<div class="empty">No stores yet.</div>';
-  for(var i=0;i<CFG.stores.length;i++){ h+='<div class="li"><div><div class="nm">'+X(CFG.stores[i].code)+' — '+X(CFG.stores[i].name)+'</div><div class="meta">'+X(CFG.stores[i].state)+'</div></div><div class="acts"><button class="iconbtn" onclick="editStore('+i+')">&#9998;</button><button class="iconbtn" onclick="removeStore('+i+')">&#128465;</button></div></div>'; }
+  for(var i=0;i<CFG.stores.length;i++){ var s=CFG.stores[i]; h+='<div class="li"><div><div class="nm">'+X(s.code)+(s.name?' — '+X(s.name):'')+'</div><div class="meta">'+X(s.state||'')+(s.coach?' &middot; Coach: '+X(s.coach):'')+(s.email?' &middot; '+X(s.email):'')+'</div></div><div class="acts"><button class="iconbtn" onclick="editStore('+i+')">&#9998;</button><button class="iconbtn" onclick="removeStore('+i+')">&#128465;</button></div></div>'; }
   h+='</div></div>';
   return h;
 }
 function removeStore(i){ if(confirm("Remove store "+CFG.stores[i].code+"?")){ CFG.stores.splice(i,1); markDirty(); renderAdmin(); } }
 function editStore(i){
-  var s=i<0?{code:"",name:"",state:""}:CFG.stores[i];
+  var s=i<0?{code:"",name:"",state:"",coach:"",email:""}:CFG.stores[i];
+  var coaches=["TBD","Ambulai Sheku","Cheryl Birchfield","Joel Montero","Manny Rivera","Mr. Watts","Rose Perez"];
+  var co=""; for(var c=0;c<coaches.length;c++) co+='<option'+(s.coach===coaches[c]?' selected':'')+'>'+X(coaches[c])+'</option>';
   openEditor((i<0?"Add store":"Edit store"),
     '<div class="field"><label>Store code</label><input id="e-code" value="'+X(s.code)+'" placeholder="e.g. TN-03"></div>'+
-    '<div class="field"><label>Location name</label><input id="e-sname" value="'+X(s.name)+'" placeholder="e.g. Knoxville — Kingston Pike"></div>'+
-    '<div class="field"><label>State</label><input id="e-state" value="'+X(s.state)+'" placeholder="AR / CT / MA / RI / TN" maxlength="2"></div>',
-    function(){ s.code=$("e-code").value.toUpperCase(); s.name=$("e-sname").value; s.state=$("e-state").value.toUpperCase(); if(!s.code){ alert("Store code required."); return false; } if(i<0) CFG.stores.push(s); markDirty(); renderAdmin(); return true; });
+    '<div class="field"><label>Location name</label><input id="e-sname" value="'+X(s.name||'')+'" placeholder="e.g. Knoxville — Kingston Pike"></div>'+
+    '<div class="field"><label>State</label><input id="e-state" value="'+X(s.state||'')+'" placeholder="AR / CT / MA / RI / TN" maxlength="2"></div>'+
+    '<div class="field"><label>Coach</label><select id="e-coach">'+co+'</select></div>'+
+    '<div class="field"><label>Store email</label><input id="e-semail" value="'+X(s.email||'')+'" placeholder="storename@edgelinkinc.com"></div>',
+    function(){ s.code=$("e-code").value.toUpperCase(); s.name=$("e-sname").value; s.state=$("e-state").value.toUpperCase(); s.coach=$("e-coach").value; s.email=$("e-semail").value; if(!s.code){ alert("Store code required."); return false; } if(i<0) CFG.stores.push(s); markDirty(); renderAdmin(); return true; });
 }
 function aAnnounce(){
   var h='<div class="row-between"><div><div class="section-title">Announcements</div><div class="section-sub">These banners appear at the top of the order form.</div></div><button class="btn btn-primary btn-sm" onclick="editAnn(-1)">&#43; Add</button></div><div class="card pad"><div class="adminlist">';
@@ -641,10 +645,15 @@ function editUser(i){
     function(){ u.name=$("e-uname").value; u.email=$("e-uemail").value; u.role=$("e-urole").value; u.active=$("e-uactive").checked; if(!u.name){ alert("Name required."); return false; } if(i<0) CFG.users.push(u); markDirty(); renderAdmin(); return true; });
 }
 function aSettings(){
-  var h='<div class="section-title">Settings</div><div class="section-sub">Categories / form tabs, PIN, and publishing.</div>';
+  var h='<div class="section-title">Settings</div><div class="section-sub">Categories / form tabs, audit defaults, PIN, and publishing.</div>';
   h+='<div class="card pad" style="margin-bottom:14px"><strong style="font-size:13px">Form tabs / categories</strong><div class="section-sub" style="margin-top:4px">Renaming a category renames its order-form step automatically.</div>';
   for(var i=0;i<CFG.categories.length;i++){ h+='<span class="chip">'+X(CFG.categories[i].name)+' <button class="iconbtn" style="width:24px;height:24px;font-size:11px;margin-left:4px" onclick="renameCat('+i+')">&#9998;</button> <button class="iconbtn" style="width:24px;height:24px;font-size:11px" onclick="removeCat('+i+')">&times;</button></span>'; }
   h+='<div style="margin-top:10px"><button class="btn btn-ghost btn-sm" onclick="addCat()">&#43; Add category</button></div></div>';
+  /* Audit defaults */
+  if(!CFG.auditSettings) CFG.auditSettings={ auditor:"Ambulai Sheku" };
+  h+='<div class="card pad" style="margin-bottom:14px"><strong style="font-size:13px">Audit defaults</strong><div class="section-sub" style="margin-top:4px">The auditor name is hardcoded on every new audit form. Change it here when the audit owner changes.</div>';
+  h+='<div class="field" style="margin-top:10px;max-width:380px"><label>Audit owner / auditor</label><input id="set-auditor" value="'+X(CFG.auditSettings.auditor||'')+'" placeholder="e.g. Ambulai Sheku"></div>';
+  h+='<button class="btn btn-ghost btn-sm" onclick="saveAuditorSetting()">Save auditor</button></div>';
   h+='<div class="card pad" style="margin-bottom:14px"><strong style="font-size:13px">Admin PIN</strong><div class="section-sub" style="margin-top:4px">Set in the CONFIG block at the top of this file. Current PIN length: '+String(CONFIG.ADMIN_PIN).length+' digits.</div></div>';
   h+='<div class="card pub pad"><div class="row-between" style="margin-bottom:8px"><div><strong style="font-size:14px;color:var(--purple)">Publish to live order form</strong><div class="section-sub" style="margin-top:3px">Push item, store, category &amp; announcement changes to data.json on GitHub Pages.</div></div></div>';
   h+='<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-primary" onclick="publishConfig()">&#11014; Save &amp; publish</button><button class="btn btn-ghost" onclick="downloadConfig()">&#11015; Download data.json</button><button class="btn btn-ghost" onclick="copyConfig()">&#128203; Copy JSON</button></div>';
@@ -652,6 +661,7 @@ function aSettings(){
   return h;
 }
 function addCat(){ var n=prompt("New category name:"); if(!n) return; var step=CFG.categories.length+2; CFG.categories.push({id:uid("cat"),name:n,step:step}); markDirty(); renderAdmin(); }
+function saveAuditorSetting(){ if(!CFG.auditSettings) CFG.auditSettings={}; CFG.auditSettings.auditor=$("set-auditor").value||"Ambulai Sheku"; markDirty(); alert("Auditor set to: "+CFG.auditSettings.auditor+". Publish to save permanently."); }
 function renameCat(i){ var n=prompt("Rename category:",CFG.categories[i].name); if(!n) return; CFG.categories[i].name=n; markDirty(); renderAdmin(); }
 function removeCat(i){ var c=CFG.categories[i]; var hasItems=false; for(var x=0;x<CFG.items.length;x++){ if(CFG.items[x].cat===c.id){ hasItems=true; break; } } if(hasItems){ alert("Move or remove items in \""+c.name+"\" first."); return; } if(confirm("Remove category \""+c.name+"\"?")){ CFG.categories.splice(i,1); markDirty(); renderAdmin(); } }
 
@@ -723,7 +733,7 @@ function issueBadge(s){ var cls=s==="Open"?"b-open":s==="In Progress"?"b-prog":"
 
 function normalizeIssue(o){
   var g=function(){ for(var i=0;i<arguments.length;i++){ if(o[arguments[i]]!=null && o[arguments[i]]!=="") return o[arguments[i]]; } return ""; };
-  return { issueId:g("issueId","IssueId","Title")||uid("IS-"), auditId:g("auditId","AuditId"), store:g("store","Store"), auditor:g("auditor","Auditor"), auditDate:String(g("auditDate","AuditDate","Created")||"").substring(0,10), section:g("section","Section"), question:g("question","Question"), note:g("note","Note"), photoUrl:g("photoUrl","PhotoUrl"), status:g("status","Status")||"Open", fixedDate:String(g("fixedDate","FixedDate")||"").substring(0,10), fixedBy:g("fixedBy","FixedBy") };
+  return { issueId:g("issueId","IssueId","Title")||uid("IS-"), auditId:g("auditId","AuditId"), store:g("store","Store"), auditor:g("auditor","Auditor"), auditDate:String(g("auditDate","AuditDate","Created")||"").substring(0,10), section:g("section","Section"), question:g("question","Question"), note:g("note","Note"), photoUrl:g("photoUrl","PhotoUrl"), status:g("status","Status")||"Open", fixedDate:String(g("fixedDate","FixedDate")||"").substring(0,10), fixedBy:g("fixedBy","FixedBy"), fixNote:g("fixNote","FixNote"), fixCost:g("fixCost","FixCost") };
 }
 function normalizeLog(o){
   var g=function(){ for(var i=0;i<arguments.length;i++){ if(o[arguments[i]]!=null && o[arguments[i]]!=="") return o[arguments[i]]; } return ""; };
@@ -763,12 +773,13 @@ function renderAudits(sub){
 
 function aNew(){
   var so='<option value="">Pick a store…</option>';
-  for(var i=0;i<CFG.stores.length;i++){ so+='<option value="'+X(CFG.stores[i].code)+'"'+(AUDIT.store===CFG.stores[i].code?' selected':'')+'>'+X(CFG.stores[i].code)+' — '+X(CFG.stores[i].name)+'</option>'; }
+  for(var i=0;i<CFG.stores.length;i++){ so+='<option value="'+X(CFG.stores[i].code)+'"'+(AUDIT.store===CFG.stores[i].code?' selected':'')+'>'+X(CFG.stores[i].code)+(CFG.stores[i].name?' — '+X(CFG.stores[i].name):'')+'</option>'; }
   var done=0,no=0;
   for(var k=0;k<AUDIT_QUESTIONS.length;k++){ for(var m=0;m<AUDIT_QUESTIONS[k].items.length;m++){ var qq=AUDIT_QUESTIONS[k].items[m]; if(qq.type==="text") continue; if(AUDIT.answers[qq.id]&&AUDIT.answers[qq.id].answer){ done++; if(AUDIT.answers[qq.id].answer==="no") no++; } } }
   var t=totalAnsweredQuestions();
+  var auditor = (CFG.auditSettings && CFG.auditSettings.auditor) || "Ambulai Sheku";
   var h='<div class="card pad">';
-  h+='<div class="grid2"><div class="field"><label>Auditor name</label><input value="'+X(AUDIT.auditor)+'" placeholder="e.g. Rose Perez" oninput="AUDIT.auditor=this.value"></div>';
+  h+='<div class="grid2"><div class="field"><label>Audited by</label><input value="'+X(auditor)+'" disabled style="background:var(--surface);color:var(--ink);cursor:not-allowed"><div class="section-sub" style="margin-top:4px;font-size:11px">Change in Admin → Settings → Audit defaults.</div></div>';
   h+='<div class="field"><label>Store</label><select onchange="AUDIT.store=this.value">'+so+'</select></div></div>';
   h+='<div style="margin-bottom:14px"><span class="summary-pill" style="background:var(--gray-bg);color:var(--purple)">'+done+'/'+t+' answered</span>';
   if(no>0) h+='<span class="summary-pill b-open">'+no+' flagged</span>';
@@ -822,7 +833,7 @@ function newAuditId(){ var d=new Date(); return "AU-"+d.getFullYear()+pad2(d.get
 function submitAudit(){
   if(AUDIT.busy) return;
   if(!AUDIT.store){ alert("Pick a store."); return; }
-  if(!AUDIT.auditor){ alert("Enter your name as the auditor."); return; }
+  var auditor = (CFG.auditSettings && CFG.auditSettings.auditor) || "Ambulai Sheku";
   var unanswered=0;
   for(var i=0;i<AUDIT_QUESTIONS.length;i++){ for(var j=0;j<AUDIT_QUESTIONS[i].items.length;j++){ var it=AUDIT_QUESTIONS[i].items[j]; if(it.type==="text") continue; if(!AUDIT.answers[it.id]||!AUDIT.answers[it.id].answer) unanswered++; } }
   if(unanswered){ alert("Please answer all questions ("+unanswered+" remaining)."); return; }
@@ -847,7 +858,7 @@ function submitAudit(){
       }
     }
   }
-  var payload={ auditId:auditId, auditor:AUDIT.auditor, store:AUDIT.store, storeName:storeName(AUDIT.store), auditDate:todayISO(), totalCount:total, flaggedCount:flagged, keyholders:keyholders, answers:fullAnswers, flaggedItems:flaggedItems };
+  var payload={ auditId:auditId, auditor:auditor, store:AUDIT.store, storeName:storeName(AUDIT.store), auditDate:todayISO(), totalCount:total, flaggedCount:flagged, keyholders:keyholders, answers:fullAnswers, flaggedItems:flaggedItems };
 
   function done(success){
     AUDIT.busy=false;
@@ -877,12 +888,35 @@ function updateIssue(issueId,status){
   if(!iss) return;
   iss.status=status;
   if(status==="Fixed"){ if(!iss.fixedDate) iss.fixedDate=todayISO(); if(!iss.fixedBy) iss.fixedBy="HQ Admin"; }
-  if(status!=="Fixed"){ iss.fixedDate=""; iss.fixedBy=""; }
+  if(status!=="Fixed"){ iss.fixedDate=""; iss.fixedBy=""; iss.fixNote=""; iss.fixCost=""; }
   lsSet("auditIssues",ISSUES);
   if(configured(CONFIG.UPDATE_AUDIT_ISSUE_FLOW_URL)){
     fetch(CONFIG.UPDATE_AUDIT_ISSUE_FLOW_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(iss)}).catch(function(){});
   }
   renderAudits();
+}
+
+function markIssueFixed(issueId){
+  var iss=null; for(var i=0;i<ISSUES.length;i++){ if(ISSUES[i].issueId===issueId){ iss=ISSUES[i]; break; } }
+  if(!iss) return;
+  var fixer=(CFG.auditSettings&&CFG.auditSettings.auditor)||"HQ Admin";
+  openEditor("Mark issue fixed",
+    '<div class="field"><label>How it was fixed</label><textarea id="e-fixnote" placeholder="What was done to resolve this issue?" style="min-height:80px">'+X(iss.fixNote||"")+'</textarea></div>'+
+    '<div class="field"><label>Cost ($)</label><input id="e-fixcost" type="text" inputmode="decimal" placeholder="0.00" value="'+X(iss.fixCost||"")+'"></div>'+
+    '<div class="section-sub" style="margin-top:4px">Resolved by '+X(fixer)+' on '+fmtDate(todayISO())+'.</div>',
+    function(){
+      iss.fixNote=$("e-fixnote").value;
+      iss.fixCost=$("e-fixcost").value;
+      iss.status="Fixed";
+      iss.fixedDate=todayISO();
+      iss.fixedBy=fixer;
+      lsSet("auditIssues",ISSUES);
+      if(configured(CONFIG.UPDATE_AUDIT_ISSUE_FLOW_URL)){
+        fetch(CONFIG.UPDATE_AUDIT_ISSUE_FLOW_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(iss)}).catch(function(){});
+      }
+      renderAudits();
+      return true;
+    });
 }
 
 function aIssues(){
@@ -911,13 +945,17 @@ function aIssueCard(iss){
   h+='<div class="body"><div class="top"><span class="store">'+X(iss.store)+'</span> <span class="muted" style="font-size:12px">'+X(iss.section)+'</span> '+issueBadge(iss.status)+'</div>';
   h+='<div class="q">'+X(iss.question)+'</div>';
   if(iss.note) h+='<div class="note">'+X(iss.note)+'</div>';
+  if(iss.status==="Fixed" && (iss.fixNote||iss.fixCost)){
+    h+='<div class="note" style="background:var(--green-bg);border-left:3px solid var(--green);margin-top:6px"><strong>Resolution:</strong> '+X(iss.fixNote||"—")+(iss.fixCost?' &nbsp;&middot;&nbsp; <strong>Cost:</strong> $'+X(iss.fixCost):'')+'</div>';
+  }
   h+='<div class="meta"><span>Reported by '+X(iss.auditor||"—")+'</span><span>'+fmtDate(iss.auditDate)+'</span>';
   if(iss.fixedDate) h+='<span>Fixed '+fmtDate(iss.fixedDate)+(iss.fixedBy?' by '+X(iss.fixedBy):'')+'</span>';
   h+='</div></div>';
   h+='<div class="acts">';
   if(iss.status!=="Open") h+='<button class="btn btn-ghost btn-sm" onclick="updateIssue(\''+X(iss.issueId)+'\',\'Open\')">Reopen</button>';
   if(iss.status!=="In Progress") h+='<button class="btn btn-ghost btn-sm" onclick="updateIssue(\''+X(iss.issueId)+'\',\'In Progress\')">In progress</button>';
-  if(iss.status!=="Fixed") h+='<button class="btn btn-primary btn-sm" onclick="updateIssue(\''+X(iss.issueId)+'\',\'Fixed\')">Mark fixed</button>';
+  if(iss.status!=="Fixed") h+='<button class="btn btn-primary btn-sm" onclick="markIssueFixed(\''+X(iss.issueId)+'\')">Mark fixed</button>';
+  else h+='<button class="btn btn-ghost btn-sm" onclick="markIssueFixed(\''+X(iss.issueId)+'\')">Edit resolution</button>';
   h+='</div></div>';
   return h;
 }

@@ -63,9 +63,13 @@ Update flow: Update Edgelink Supply Order -> Update item step -> Cost field -> m
 | Status | Single line of text |
 | FixedDate | Single line of text  *(NOT Date -- avoids the empty-string trap)* |
 | FixedBy | Single line of text |
+| FixNote | Multiple lines of text  *(how the issue was fixed)* |
+| FixCost | Single line of text  *(dollar amount as text -- NOT Currency, avoids empty-string trap)* |
 | PhotoUrl | Single line of text |
 
 Enable attachments on `Edgelink Audit Issues` (List settings -> Advanced settings -> Allow attachments).
+
+**Auditor name:** Hardcoded to "Ambulai Sheku" by default (set on `auditSettings.auditor` in data.json). Change via Admin -> Settings -> Audit defaults. Coaches don't type the auditor on the audit form anymore -- it pulls from this setting.
 
 ## 2. Three Power Automate flows
 
@@ -111,10 +115,10 @@ Receives the audit, writes one Audit Log row, then creates one Issue row per fla
 
 ### Flow C -- "Update Edgelink Audit Issue"
 1. HTTP trigger (Anyone). Sample payload:
-   `{ "issueId":"IS-20260526-1234-0", "status":"Fixed", "fixedDate":"2026-05-28", "fixedBy":"HQ Admin" }`
+   `{ "issueId":"IS-20260526-1234-0", "status":"Fixed", "fixedDate":"2026-05-28", "fixedBy":"Ambulai Sheku", "fixNote":"Replaced scanner cable", "fixCost":"24.99" }`
 2. SharePoint Get items filtered: `IssueId eq '[issueId token]'`.
 3. Apply to each:
-   - SharePoint Update item -> Id from Get items -> map Status, FixedDate, FixedBy.
+   - SharePoint Update item -> Id from Get items -> map Status, FixedDate, FixedBy, FixNote, FixCost.
 4. Save -> copy signed URL.
 
 ### (Optional) Flow D -- "Get Edgelink Audit Logs"
