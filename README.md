@@ -1,96 +1,145 @@
-# Edgelink Supply Order Center
+# Edgelink Supply Order Center + Store Audits
 
-A parallel build to your `edgelinkinc/orders` accessory system — same pipeline
-(EmailJS → Power Automate → SharePoint, with `data.json` on GitHub Pages holding
-the editable lists), but kept fully separate so supplies never mix with accessories.
+Two-app system built on the same `EmailJS -> Power Automate -> SharePoint` pipeline as `/orders`.
 
 ## Files
 
-| File | What it is |
-|------|------------|
-| `supply-order-form.html` | Employee-facing form. 6 steps (Store Info → Office → Cleaning → Store Ops → Marketing → Review). Reads `data.json` on load, submits via EmailJS + Power Automate. |
-| `supply-dashboard.html` | HQ dashboard **with Admin Center built in** (PIN-gated). 7 dashboard sections + the order detail modal + 8 admin tabs. |
-| `data.json` | The editable lists — categories, items, stores, announcements, users. Admin edits these and publishes; the form reads them. |
+| File | Purpose |
+|------|---------|
+| `supply-order-form.html` | Employee-facing supply order form. Untouched by audits. |
+| `supply-dashboard.html` | HQ ops center: supply orders + store audits (PIN-gated). |
+| `data.json` | Editable config (categories, items, stores, announcements, users). |
 
-The dashboard works **right now** on sample data — open it before wiring anything.
-The form will also render and walk through to a confirmation screen before the
-flows are connected (it just won't save to SharePoint until you paste the URLs).
+## Live URLs
 
-## Run it locally (to test before deploying)
+- Form: `https://edgelinkinc.github.io/supplies/supply-order-form.html`
+- Dashboard: `https://edgelinkinc.github.io/supplies/supply-dashboard.html`
 
-Because the files use `fetch("data.json")`, open them through a local server, not
-by double-clicking (browsers block `fetch` on `file://`):
+---
+
+# SUPPLIES -- outstanding setup
+
+## 1. Save flow Items mapping (fixes empty line items in the order modal)
+1. Save Edgelink Supply Order flow -> Edit -> Create item step.
+2. Items field -> remove the current `itemsText` token.
+3. Click the field -> Expression (fx) -> paste `string(triggerBody()?['items'])` -> Add.
+4. Save.
+5. Submit a fresh order; the dashboard modal will now show line items.
+
+## 2. Cost column + Update flow Cost mapping
+SharePoint: Edgelink Supply Orders list -> + Add column -> Single line of text -> name it `Cost`.
+
+Update flow: Update Edgelink Supply Order -> Update item step -> Cost field -> map to the `cost` token -> Save.
+
+---
+
+# AUDITS -- full setup
+
+## 1. Two SharePoint lists (on the Edgelink Orders site)
+
+### `Edgelink Audit Logs` -- one row per submitted audit
+| Column | Type |
+|--------|------|
+| AuditId | Single line of text |
+| Auditor | Single line of text |
+| Store | Single line of text |
+| AuditDate | Date |
+| TotalCount | Number |
+| FlaggedCount | Number |
+| Keyholders | Multiple lines of text |
+| Answers | Multiple lines of text (JSON of all Q/A) |
+
+### `Edgelink Audit Issues` -- one row per flagged item (the punch list)
+| Column | Type |
+|--------|------|
+| IssueId | Single line of text |
+| AuditId | Single line of text |
+| Store | Single line of text |
+| Auditor | Single line of text |
+| AuditDate | Date |
+| Section | Single line of text |
+| Question | Multiple lines of text |
+| Note | Multiple lines of text |
+| Status | Single line of text |
+| FixedDate | Single line of text  *(NOT Date -- avoids the empty-string trap)* |
+| FixedBy | Single line of text |
+| PhotoUrl | Single line of text |
+
+Enable attachments on `Edgelink Audit Issues` (List settings -> Advanced settings -> Allow attachments).
+
+## 2. Three Power Automate flows
+
+### Flow A -- "Save Edgelink Audit"
+Receives the audit, writes one Audit Log row, then creates one Issue row per flagged item with photo attached.
+
+1. Trigger: HTTP request received. Who can trigger = Anyone. Sample payload:
+```
+{
+  "auditId":"AU-20260526-1234",
+  "auditor":"Rose Perez",
+  "store":"TN-01",
+  "storeName":"Memphis -- Poplar",
+  "auditDate":"2026-05-26",
+  "totalCount":14,
+  "flaggedCount":1,
+  "keyholders":"Maria, John",
+  "answers":{"hw1":{"answer":"yes","note":""}},
+  "flaggedItems":[
+    {"issueId":"IS-20260526-1234-0","auditId":"AU-20260526-1234","section":"Hardware","questionId":"hw3","question":"Are all scanners working?","note":"Scanner at register 2 not reading","photoBase64":"...","photoName":"hw3.jpg","status":"Open"}
+  ]
+}
+```
+
+2. SharePoint -> Create item in Edgelink Audit Logs. Map fields from trigger.
+   - Answers field -> Expression: `string(triggerBody()?['answers'])`
+
+3. Apply to each over `flaggedItems`. Inside:
+   - SharePoint Create item in Edgelink Audit Issues -- map each field from `item()`. Pull Store/Auditor/AuditDate from `triggerBody()`. Leave FixedDate/FixedBy/PhotoUrl blank.
+   - Condition: if `length(item()?['photoBase64']) > 0`
+     - SharePoint Add attachment to the just-created issue row. Id from Create item 2. File Name = `item()?['photoName']`. File Content = Expression `base64ToBinary(item()?['photoBase64'])`.
+     - SharePoint Update item on that issue row, PhotoUrl = path to the attachment (e.g. `/sites/<your-site>/Lists/Edgelink Audit Issues/Attachments/<itemId>/<filename>`).
+
+4. Response 200.
+
+5. Save -> Anyone + classic view -> copy signed URL.
+
+### Flow B -- "Get Edgelink Audit Issues"
+1. HTTP trigger (Anyone), no schema needed.
+2. SharePoint Get items on Edgelink Audit Issues.
+3. Response status 200, Body = the `value` of Get items.
+4. Save -> copy signed URL.
+
+### Flow C -- "Update Edgelink Audit Issue"
+1. HTTP trigger (Anyone). Sample payload:
+   `{ "issueId":"IS-20260526-1234-0", "status":"Fixed", "fixedDate":"2026-05-28", "fixedBy":"HQ Admin" }`
+2. SharePoint Get items filtered: `IssueId eq '[issueId token]'`.
+3. Apply to each:
+   - SharePoint Update item -> Id from Get items -> map Status, FixedDate, FixedBy.
+4. Save -> copy signed URL.
+
+### (Optional) Flow D -- "Get Edgelink Audit Logs"
+Same shape as Flow B but on the Logs list. Powers the History view.
+
+## 3. Paste the URLs into the dashboard CONFIG
 
 ```
-cd supplies
-python -m http.server 8080
+SAVE_AUDIT_FLOW_URL:         "<Flow A URL>",
+GET_AUDIT_ISSUES_FLOW_URL:   "<Flow B URL>",
+UPDATE_AUDIT_ISSUE_FLOW_URL: "<Flow C URL>",
+GET_AUDIT_LOGS_FLOW_URL:     "<Flow D URL>"
 ```
-Then visit `http://localhost:8080/supply-order-form.html` and `…/supply-dashboard.html`.
-(The dashboard falls back to sample orders if no server / flow is set up.)
 
-## Deploy (GitHub Pages)
+## 4. Test
+1. Dashboard -> Audits tab -> enter PIN.
+2. + New audit -> pick a store -> answer questions -> tap No on one to add note + photo.
+3. Submit audit -> alert: "N issue(s) opened."
+4. Open issues -> see flagged items with thumbnails, mark Open/In Progress/Fixed.
+5. History -> see audit by store with score.
 
-1. Create a new repo `edgelinkinc/supplies` (keeps it separate from `orders`).
-2. Upload all three files.
-3. Settings → Pages → deploy from `main` / root.
-4. URLs:
-   - Form: `https://edgelinkinc.github.io/supplies/supply-order-form.html`
-   - Dashboard: `https://edgelinkinc.github.io/supplies/supply-dashboard.html`
-   - (Rename the form to `index.html` if you want the bare URL to open it.)
+---
 
-## Wiring the pipeline (same 3 flows as /orders)
+# Style standards
 
-Set the values in the `CONFIG` block at the top of each file's `<script>`.
-
-### 1. SharePoint list — `Edgelink Supply Orders`
-Create a list with these columns (all single-line text unless noted):
-`OrderId`, `Employee`, `Store`, `OrderDate` (date), `Status`, `PO`, `Tracking`,
-`Notes`, `FulfillmentNotes`, `DateFulfilled` (date), `UpdatedBy`,
-`Items` (multiple lines — stores the JSON of line items).
-
-### 2. Flow "Save Edgelink Supply Order"  → `SAVE_FLOW_URL` (form file)
-Instant cloud flow → **When an HTTP request is received** → **SharePoint Create item**
-into `Edgelink Supply Orders`. Map the request body fields (`orderId`, `employee`,
-`store`, `orderDate`, `status`, `notes`) to columns; put `items` JSON into `Items`.
-Copy the HTTP POST URL into `SAVE_FLOW_URL`.
-
-### 3. Flow "Get Edgelink Supply Orders"  → `GET_ORDERS_FLOW_URL` (dashboard)
-Instant cloud flow → HTTP trigger → **SharePoint Get items** (`Edgelink Supply Orders`)
-→ **Response** (status 200, body = the items). The dashboard reads this on load /
-Refresh. It tolerates `value`, `orders`, or a bare array.
-
-### 4. Flow "Update Edgelink Supply Order" → `UPDATE_ORDER_FLOW_URL` (dashboard)
-HTTP trigger → **SharePoint Get items** filtered by `OrderId eq <body OrderId>` →
-**Update item** with the new `Status`, `PO`, `Tracking`, `FulfillmentNotes`,
-`DateFulfilled`, `UpdatedBy`. Fires when you hit **Save changes** in the order modal.
-
-### 5. EmailJS (optional but recommended)
-Reuse your existing EmailJS account. Make a new template for supplies using these
-variables: `{{order_id}} {{employee}} {{store}} {{order_date}} {{items_text}}
-{{line_count}} {{unit_count}} {{notes}}`. Set `EMAILJS_PUBLIC_KEY`,
-`EMAILJS_SERVICE_ID`, `EMAILJS_TEMPLATE_ID` in the form file.
-
-### 6. Publishing config (Admin → Settings → Save & publish)
-Two paths, and the dashboard supports **both**:
-- **Power Automate** → set `PUBLISH_CONFIG_FLOW_URL` to a flow that commits `data.json`
-  to GitHub. (This is the GitHub-API PUT that gave the accessory system "Bad
-  Credentials" trouble — if it misbehaves, use the fallback below.)
-- **Manual fallback (always available):** click **Download data.json** or **Copy JSON**,
-  then commit it to `edgelinkinc/supplies`. Zero dependency on the flaky flow.
-
-## Admin
-
-- Open the dashboard → **Admin** tab → enter PIN (default `1234`, change
-  `CONFIG.ADMIN_PIN` at the top of `supply-dashboard.html`).
-- Add/edit/remove items, stores, users, announcements; rename categories (which
-  renames the matching form step); toggle items active/inactive; set reorder notes.
-- Changes are held until you **Save & publish**.
-
-## Notes
-- Built ES5 (var / function declarations, no arrow functions or template literals),
-  single-page per file, light theme, Edgelink magenta `#E20074` + purple `#5C2D91`,
-  no Metro branding — consistent with your other dashboards.
-- The 12 starter stores are placeholders. Paste your real 34-store list into
-  `data.json` (or copy the store array from your accessory `data.json` — same stores),
-  or add them in Admin → Stores and publish.
-- Work week assumed Mon–Sun; the "quiet store" tracker counts calendar days vs today.
+ES5 only (var / function declarations, no arrow functions or template literals).
+Single-file HTML, light theme, Edgelink magenta `#E20074` + purple `#5C2D91`.
+No Metro branding.
