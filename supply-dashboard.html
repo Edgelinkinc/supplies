@@ -4,265 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Edgelink — Supply Order Center (HQ)</title>
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js">
-/* ============================================================
-   AUDIT MODULE — PIN-gated inside the dashboard
-   ============================================================ */
-var AUDIT_QUESTIONS = [
-  { section:"Hardware", items:[
-    {id:"hw1", q:"Are all VSA units working?"},
-    {id:"hw2", q:"Are all pin card / credit card machines working?"},
-    {id:"hw3", q:"Are all scanners working?"},
-    {id:"hw4", q:"Are all receipt printers working?"},
-    {id:"hw5", q:"Are all regular printers working?"},
-    {id:"hw6", q:"Are all demo devices secure?"},
-    {id:"hw7", q:"Is the GPS tracking device present and charged?"}
-  ]},
-  { section:"Sales Floor", items:[
-    {id:"sf1", q:"Are overhead areas (lighting and ceiling tiles) in good condition?"},
-    {id:"sf2", q:"Are walls, doors, and windows in good condition?"},
-    {id:"sf3", q:"Are flooring and fixtures in sales floor area in good condition?"}
-  ]},
-  { section:"Employee Readiness", items:[
-    {id:"er1", q:"Do all reps have their own assigned sales / Brinks codes?"},
-    {id:"er2", q:"Who are the key holders for this location?", type:"text"},
-    {id:"er3", q:"Are there regulated waste bins present?"}
-  ]},
-  { section:"Location", items:[
-    {id:"lo1", q:"Is there an A-frame?"},
-    {id:"lo2", q:"Is there a flag?"}
-  ]}
-];
-var ISSUE_STATUSES = ["Open","In Progress","Fixed"];
-var AUDIT = { sub:"new", store:"", auditor:"", answers:{}, busy:false, _loaded:false };
-var ISSUES = [];
-var AUDIT_LOGS = [];
-var ISSUE_FILTER = { store:"", status:"" };
-
-function totalAnsweredQuestions(){ var n=0; for(var i=0;i<AUDIT_QUESTIONS.length;i++){ for(var j=0;j<AUDIT_QUESTIONS[i].items.length;j++){ if(AUDIT_QUESTIONS[i].items[j].type!=="text") n++; } } return n; }
-function issueBadge(s){ var cls=s==="Open"?"b-open":s==="In Progress"?"b-prog":"b-fixed"; return '<span class="badge '+cls+'"><span class="dot"></span>'+X(s)+'</span>'; }
-
-function normalizeIssue(o){
-  var g=function(){ for(var i=0;i<arguments.length;i++){ if(o[arguments[i]]!=null && o[arguments[i]]!=="") return o[arguments[i]]; } return ""; };
-  return { issueId:g("issueId","IssueId","Title")||uid("IS-"), auditId:g("auditId","AuditId"), store:g("store","Store"), auditor:g("auditor","Auditor"), auditDate:String(g("auditDate","AuditDate","Created")||"").substring(0,10), section:g("section","Section"), question:g("question","Question"), note:g("note","Note"), photoUrl:g("photoUrl","PhotoUrl"), status:g("status","Status")||"Open", fixedDate:String(g("fixedDate","FixedDate")||"").substring(0,10), fixedBy:g("fixedBy","FixedBy") };
-}
-function normalizeLog(o){
-  var g=function(){ for(var i=0;i<arguments.length;i++){ if(o[arguments[i]]!=null && o[arguments[i]]!=="") return o[arguments[i]]; } return ""; };
-  var ans=g("answers","Answers"); if(typeof ans==="string"){ try{ ans=JSON.parse(ans.replace(/<[^>]*>/g,"").replace(/&quot;/g,'"').replace(/&amp;/g,"&")); }catch(e){ ans={}; } }
-  return { auditId:g("auditId","AuditId","Title")||uid("AU-"), store:g("store","Store"), auditor:g("auditor","Auditor"), auditDate:String(g("auditDate","AuditDate","Created")||"").substring(0,10), totalCount:g("totalCount","TotalCount"), flaggedCount:g("flaggedCount","FlaggedCount"), keyholders:g("keyholders","Keyholders"), answers:ans||{} };
-}
-
-function loadIssues(cb){
-  if(!configured(CONFIG.GET_AUDIT_ISSUES_FLOW_URL)){ ISSUES=lsGet("auditIssues",null)||[]; if(cb)cb(); return; }
-  fetch(CONFIG.GET_AUDIT_ISSUES_FLOW_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"})
-    .then(function(r){ if(!r.ok) throw 0; return r.json(); })
-    .then(function(d){ var a=d.value||d.issues||d||[]; if(!(a instanceof Array)) a=[]; ISSUES=[]; for(var i=0;i<a.length;i++) ISSUES.push(normalizeIssue(a[i])); lsSet("auditIssues",ISSUES); if(cb)cb(); })
-    .catch(function(){ ISSUES=lsGet("auditIssues",null)||[]; if(cb)cb(); });
-}
-function loadLogs(cb){
-  if(!configured(CONFIG.GET_AUDIT_LOGS_FLOW_URL)){ AUDIT_LOGS=lsGet("auditLogs",null)||[]; if(cb)cb(); return; }
-  fetch(CONFIG.GET_AUDIT_LOGS_FLOW_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"})
-    .then(function(r){ if(!r.ok) throw 0; return r.json(); })
-    .then(function(d){ var a=d.value||d.logs||d||[]; if(!(a instanceof Array)) a=[]; AUDIT_LOGS=[]; for(var i=0;i<a.length;i++) AUDIT_LOGS.push(normalizeLog(a[i])); lsSet("auditLogs",AUDIT_LOGS); if(cb)cb(); })
-    .catch(function(){ AUDIT_LOGS=lsGet("auditLogs",null)||[]; if(cb)cb(); });
-}
-
-function renderAudits(sub){
-  if(sub) AUDIT.sub=sub;
-  if(!AUDIT._loaded){ AUDIT._loaded=true; loadIssues(function(){ loadLogs(function(){ renderAudits(); }); }); }
-  var h='<div class="tabs">'+tabsHTML()+'</div>';
-  h+='<div class="row-between" style="margin-bottom:6px"><div><div class="section-title">Store audits</div><div class="section-sub">Field checklist for store visits. Flagged items become the HQ punch list.</div></div></div>';
-  h+='<div class="audit-tabs">';
-  var subs=[{id:"new",label:"+ New audit"},{id:"issues",label:"Open issues"},{id:"history",label:"History"}];
-  for(var i=0;i<subs.length;i++) h+='<button class="'+(AUDIT.sub===subs[i].id?'on':'')+'" onclick="renderAudits(\''+subs[i].id+'\')">'+subs[i].label+'</button>';
-  h+='</div>';
-  if(AUDIT.sub==="new") h+=aNew();
-  else if(AUDIT.sub==="issues") h+=aIssues();
-  else if(AUDIT.sub==="history") h+=aHistory();
-  $("wrap").innerHTML=h;
-}
-
-function aNew(){
-  var so='<option value="">Pick a store…</option>';
-  for(var i=0;i<CFG.stores.length;i++){ so+='<option value="'+X(CFG.stores[i].code)+'"'+(AUDIT.store===CFG.stores[i].code?' selected':'')+'>'+X(CFG.stores[i].code)+' — '+X(CFG.stores[i].name)+'</option>'; }
-  var done=0,no=0;
-  for(var k=0;k<AUDIT_QUESTIONS.length;k++){ for(var m=0;m<AUDIT_QUESTIONS[k].items.length;m++){ var qq=AUDIT_QUESTIONS[k].items[m]; if(qq.type==="text") continue; if(AUDIT.answers[qq.id]&&AUDIT.answers[qq.id].answer){ done++; if(AUDIT.answers[qq.id].answer==="no") no++; } } }
-  var t=totalAnsweredQuestions();
-  var h='<div class="card pad">';
-  h+='<div class="grid2"><div class="field"><label>Auditor name</label><input value="'+X(AUDIT.auditor)+'" placeholder="e.g. Rose Perez" oninput="AUDIT.auditor=this.value"></div>';
-  h+='<div class="field"><label>Store</label><select onchange="AUDIT.store=this.value">'+so+'</select></div></div>';
-  h+='<div style="margin-bottom:14px"><span class="summary-pill" style="background:var(--gray-bg);color:var(--purple)">'+done+'/'+t+' answered</span>';
-  if(no>0) h+='<span class="summary-pill b-open">'+no+' flagged</span>';
-  h+='</div>';
-  for(var s=0;s<AUDIT_QUESTIONS.length;s++){
-    h+='<div class="audit-section-hd">'+X(AUDIT_QUESTIONS[s].section)+'</div>';
-    for(var j=0;j<AUDIT_QUESTIONS[s].items.length;j++) h+=aQbox(AUDIT_QUESTIONS[s].items[j]);
-  }
-  h+='<div class="row-between" style="margin-top:18px;margin-bottom:0"><button class="btn btn-ghost" onclick="resetAudit()">Reset</button><button class="btn btn-primary" id="audit-submit" onclick="submitAudit()">Submit audit &#10003;</button></div>';
-  h+='</div>';
-  return h;
-}
-function aQbox(it){
-  var a=AUDIT.answers[it.id]||{};
-  if(it.type==="text"){
-    return '<div class="qbox"><div class="qtxt">'+X(it.q)+'</div><textarea style="width:100%;font-family:Montserrat;font-size:13px;padding:9px 11px;border:1px solid var(--line);border-radius:9px;min-height:50px;outline:none" oninput="setAuditAns(\''+it.id+'\',\'text\',this.value)" placeholder="List the key holders for this store…">'+X(a.note||"")+'</textarea></div>';
-  }
-  var cls=a.answer==="yes"?"yes":a.answer==="no"?"no":a.answer==="na"?"na":"";
-  var h='<div class="qbox '+cls+'" id="qb-'+it.id+'"><div class="qtxt">'+X(it.q)+'</div>';
-  h+='<div class="ynbtns">';
-  h+='<button class="'+(a.answer==="yes"?"yes-on":"")+'" onclick="setAuditAns(\''+it.id+'\',\'yes\')">Yes</button>';
-  h+='<button class="'+(a.answer==="no"?"no-on":"")+'" onclick="setAuditAns(\''+it.id+'\',\'no\')">No</button>';
-  h+='<button class="'+(a.answer==="na"?"na-on":"")+'" onclick="setAuditAns(\''+it.id+'\',\'na\')">N/A</button>';
-  h+='</div>';
-  h+='<div class="qnote"><textarea placeholder="What\'s the issue? (required)" oninput="setAuditNote(\''+it.id+'\',this.value)">'+X(a.note||"")+'</textarea>';
-  h+='<div class="qphoto"><label for="ph-'+it.id+'">&#128247; Add photo<input type="file" id="ph-'+it.id+'" accept="image/*" onchange="setAuditPhoto(\''+it.id+'\',this)"></label>';
-  if(a.photo){ h+='<div class="preview" style="background-image:url('+a.photo+')"></div><span class="pname">photo attached</span><button class="iconbtn" onclick="setAuditPhoto(\''+it.id+'\',null)" style="margin-left:6px;width:28px;height:28px">&times;</button>'; }
-  h+='</div></div></div>';
-  return h;
-}
-function setAuditAns(qid,ans,textVal){
-  if(!AUDIT.answers[qid]) AUDIT.answers[qid]={};
-  if(ans==="text"){ AUDIT.answers[qid].note=textVal; return; }
-  AUDIT.answers[qid].answer=ans;
-  if(ans!=="no"){ AUDIT.answers[qid].note=""; AUDIT.answers[qid].photo=""; }
-  renderAudits();
-}
-function setAuditNote(qid,v){ if(!AUDIT.answers[qid]) AUDIT.answers[qid]={}; AUDIT.answers[qid].note=v; }
-function setAuditPhoto(qid,input){
-  if(!AUDIT.answers[qid]) AUDIT.answers[qid]={};
-  if(input===null){ AUDIT.answers[qid].photo=""; renderAudits(); return; }
-  var f=input.files&&input.files[0]; if(!f) return;
-  if(f.size>4*1024*1024){ alert("Photo too large (max 4 MB). Try a smaller image."); return; }
-  var rd=new FileReader();
-  rd.onload=function(e){ AUDIT.answers[qid].photo=e.target.result; renderAudits(); };
-  rd.readAsDataURL(f);
-}
-function resetAudit(){ if(confirm("Clear this audit?")){ AUDIT={ sub:"new", store:"", auditor:AUDIT.auditor, answers:{}, busy:false, _loaded:true }; renderAudits(); } }
-
-function newAuditId(){ var d=new Date(); return "AU-"+d.getFullYear()+pad2(d.getMonth()+1)+pad2(d.getDate())+"-"+Math.floor(1000+Math.random()*9000); }
-function submitAudit(){
-  if(AUDIT.busy) return;
-  if(!AUDIT.store){ alert("Pick a store."); return; }
-  if(!AUDIT.auditor){ alert("Enter your name as the auditor."); return; }
-  var unanswered=0;
-  for(var i=0;i<AUDIT_QUESTIONS.length;i++){ for(var j=0;j<AUDIT_QUESTIONS[i].items.length;j++){ var it=AUDIT_QUESTIONS[i].items[j]; if(it.type==="text") continue; if(!AUDIT.answers[it.id]||!AUDIT.answers[it.id].answer) unanswered++; } }
-  if(unanswered){ alert("Please answer all questions ("+unanswered+" remaining)."); return; }
-  for(var k=0;k<AUDIT_QUESTIONS.length;k++){ for(var m=0;m<AUDIT_QUESTIONS[k].items.length;m++){ var qq=AUDIT_QUESTIONS[k].items[m]; var a=AUDIT.answers[qq.id]; if(a&&a.answer==="no"&&!a.note){ alert("Please add a note for: "+qq.q); return; } } }
-
-  AUDIT.busy=true;
-  var btn=$("audit-submit"); if(btn){ btn.disabled=true; btn.innerHTML="Sending…"; }
-
-  var auditId=newAuditId(), total=0, flagged=0, flaggedItems=[], fullAnswers={};
-  var keyholders=(AUDIT.answers["er2"]&&AUDIT.answers["er2"].note)||"";
-  for(var s=0;s<AUDIT_QUESTIONS.length;s++){
-    for(var t=0;t<AUDIT_QUESTIONS[s].items.length;t++){
-      var qx=AUDIT_QUESTIONS[s].items[t], ans=AUDIT.answers[qx.id]||{};
-      fullAnswers[qx.id]={ answer:ans.answer||"", note:ans.note||"" };
-      if(qx.type==="text") continue;
-      total++;
-      if(ans.answer==="no"){
-        flagged++;
-        var rawPhoto = ans.photo||"";
-        var b64 = rawPhoto && rawPhoto.indexOf(",")>=0 ? rawPhoto.substring(rawPhoto.indexOf(",")+1) : rawPhoto;
-        flaggedItems.push({ issueId:"IS-"+auditId.substring(3)+"-"+flaggedItems.length, auditId:auditId, section:AUDIT_QUESTIONS[s].section, questionId:qx.id, question:qx.q, note:ans.note||"", photoBase64:b64, photoName:b64?(qx.id+".jpg"):"", status:"Open" });
-      }
-    }
-  }
-  var payload={ auditId:auditId, auditor:AUDIT.auditor, store:AUDIT.store, storeName:storeName(AUDIT.store), auditDate:todayISO(), totalCount:total, flaggedCount:flagged, keyholders:keyholders, answers:fullAnswers, flaggedItems:flaggedItems };
-
-  function done(success){
-    AUDIT.busy=false;
-    if(success){
-      alert("Audit submitted. "+flagged+" issue(s) opened.");
-      AUDIT={ sub:"issues", store:"", auditor:AUDIT.auditor, answers:{}, busy:false, _loaded:false };
-      renderAudits();
-    } else {
-      var pending=lsGet("pendingAudits",[]); pending.push(payload); lsSet("pendingAudits",pending);
-      alert("Couldn't reach SharePoint — the audit was saved locally and will need to be re-sent.");
-      var b=$("audit-submit"); if(b){ b.disabled=false; b.innerHTML="Submit audit &#10003;"; }
-    }
-  }
-  if(configured(CONFIG.SAVE_AUDIT_FLOW_URL)){
-    fetch(CONFIG.SAVE_AUDIT_FLOW_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)})
-      .then(function(r){ if(!r.ok) throw 0; done(true); })
-      .catch(function(){ done(false); });
-  } else {
-    var pending=lsGet("pendingAudits",[]); pending.push(payload); lsSet("pendingAudits",pending);
-    alert("Audit saved locally (Save Audit flow not wired yet).");
-    done(true);
-  }
-}
-
-function updateIssue(issueId,status){
-  var iss=null; for(var i=0;i<ISSUES.length;i++){ if(ISSUES[i].issueId===issueId){ iss=ISSUES[i]; break; } }
-  if(!iss) return;
-  iss.status=status;
-  if(status==="Fixed"){ if(!iss.fixedDate) iss.fixedDate=todayISO(); if(!iss.fixedBy) iss.fixedBy="HQ Admin"; }
-  if(status!=="Fixed"){ iss.fixedDate=""; iss.fixedBy=""; }
-  lsSet("auditIssues",ISSUES);
-  if(configured(CONFIG.UPDATE_AUDIT_ISSUE_FLOW_URL)){
-    fetch(CONFIG.UPDATE_AUDIT_ISSUE_FLOW_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(iss)}).catch(function(){});
-  }
-  renderAudits();
-}
-
-function aIssues(){
-  var so='<option value="">All stores</option>';
-  for(var i=0;i<CFG.stores.length;i++){ so+='<option value="'+X(CFG.stores[i].code)+'"'+(ISSUE_FILTER.store===CFG.stores[i].code?' selected':'')+'>'+X(CFG.stores[i].code)+'</option>'; }
-  var st='<option value="">All statuses</option>';
-  for(var j=0;j<ISSUE_STATUSES.length;j++) st+='<option value="'+ISSUE_STATUSES[j]+'"'+(ISSUE_FILTER.status===ISSUE_STATUSES[j]?' selected':'')+'>'+ISSUE_STATUSES[j]+'</option>';
-  var list=[];
-  for(var k=0;k<ISSUES.length;k++){ var iss=ISSUES[k]; if(ISSUE_FILTER.store&&iss.store!==ISSUE_FILTER.store) continue; if(ISSUE_FILTER.status&&iss.status!==ISSUE_FILTER.status) continue; list.push(iss); }
-  var rank={"Open":0,"In Progress":1,"Fixed":2};
-  list.sort(function(a,b){ var ra=rank[a.status]==null?9:rank[a.status], rb=rank[b.status]==null?9:rank[b.status]; if(ra!==rb) return ra-rb; return a.auditDate<b.auditDate?1:-1; });
-  var openN=0,progN=0,fixedN=0;
-  for(var x=0;x<ISSUES.length;x++){ if(ISSUES[x].status==="Open") openN++; else if(ISSUES[x].status==="In Progress") progN++; else if(ISSUES[x].status==="Fixed") fixedN++; }
-  var h='<div class="tiles"><div class="tile r"><div class="lbl">Open</div><div class="val">'+openN+'</div></div><div class="tile a"><div class="lbl">In Progress</div><div class="val">'+progN+'</div></div><div class="tile g"><div class="lbl">Fixed</div><div class="val">'+fixedN+'</div></div></div>';
-  h+='<div class="filters"><select onchange="ISSUE_FILTER.store=this.value;renderAudits()">'+so+'</select><select onchange="ISSUE_FILTER.status=this.value;renderAudits()">'+st+'</select></div>';
-  h+='<div class="card pad">';
-  if(list.length===0) h+='<div class="empty">No issues match the current filters. Submit an audit with a No answer and they show up here.</div>';
-  for(var y=0;y<list.length;y++) h+=aIssueCard(list[y]);
-  h+='</div>';
-  return h;
-}
-function aIssueCard(iss){
-  var cls=iss.status==="Open"?"open":iss.status==="In Progress"?"prog":"fixed";
-  var h='<div class="issue-card '+cls+'">';
-  if(iss.photoUrl) h+='<div class="thumb" style="background-image:url('+X(iss.photoUrl)+')" onclick="window.open(\''+X(iss.photoUrl)+'\',\'_blank\')" title="Open photo"></div>';
-  h+='<div class="body"><div class="top"><span class="store">'+X(iss.store)+'</span> <span class="muted" style="font-size:12px">'+X(iss.section)+'</span> '+issueBadge(iss.status)+'</div>';
-  h+='<div class="q">'+X(iss.question)+'</div>';
-  if(iss.note) h+='<div class="note">'+X(iss.note)+'</div>';
-  h+='<div class="meta"><span>Reported by '+X(iss.auditor||"—")+'</span><span>'+fmtDate(iss.auditDate)+'</span>';
-  if(iss.fixedDate) h+='<span>Fixed '+fmtDate(iss.fixedDate)+(iss.fixedBy?' by '+X(iss.fixedBy):'')+'</span>';
-  h+='</div></div>';
-  h+='<div class="acts">';
-  if(iss.status!=="Open") h+='<button class="btn btn-ghost btn-sm" onclick="updateIssue(\''+X(iss.issueId)+'\',\'Open\')">Reopen</button>';
-  if(iss.status!=="In Progress") h+='<button class="btn btn-ghost btn-sm" onclick="updateIssue(\''+X(iss.issueId)+'\',\'In Progress\')">In progress</button>';
-  if(iss.status!=="Fixed") h+='<button class="btn btn-primary btn-sm" onclick="updateIssue(\''+X(iss.issueId)+'\',\'Fixed\')">Mark fixed</button>';
-  h+='</div></div>';
-  return h;
-}
-
-function aHistory(){
-  var byStore={};
-  for(var i=0;i<AUDIT_LOGS.length;i++){ var l=AUDIT_LOGS[i]; if(!byStore[l.store]) byStore[l.store]=[]; byStore[l.store].push(l); }
-  var storeKeys=[]; for(var s in byStore) storeKeys.push(s);
-  storeKeys.sort(function(a,b){ var la="",lb=""; for(var i=0;i<byStore[a].length;i++) if(byStore[a][i].auditDate>la) la=byStore[a][i].auditDate; for(var j=0;j<byStore[b].length;j++) if(byStore[b][j].auditDate>lb) lb=byStore[b][j].auditDate; return la<lb?1:-1; });
-  var h='';
-  if(storeKeys.length===0) h+='<div class="card pad"><div class="empty">No audits submitted yet. Submit one from the "+ New audit" tab.</div></div>';
-  for(var k=0;k<storeKeys.length;k++){
-    var code=storeKeys[k], logs=byStore[code].slice(); logs.sort(function(a,b){ return a.auditDate<b.auditDate?1:-1; });
-    h+='<div class="card" style="margin-bottom:14px"><div class="pad" style="padding-bottom:10px"><div class="row-between" style="margin-bottom:0"><div><strong>'+X(code)+'</strong> <span class="muted">— '+X(storeName(code))+'</span></div><span class="chip">'+logs.length+' audit(s)</span></div></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Date</th><th>Auditor</th><th>Score</th><th>Flagged</th><th>Key holders</th></tr></thead><tbody>';
-    for(var t=0;t<logs.length;t++){
-      var lg=logs[t], score=lg.totalCount?((lg.totalCount-lg.flaggedCount)+"/"+lg.totalCount):"—";
-      h+='<tr><td class="muted">'+fmtDate(lg.auditDate)+'</td><td>'+X(lg.auditor)+'</td><td>'+score+'</td><td>'+(lg.flaggedCount>0?'<span class="badge b-open">'+lg.flaggedCount+'</span>':'<span class="badge b-fulfilled">0</span>')+'</td><td class="muted" style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+X(lg.keyholders||"—")+'</td></tr>';
-    }
-    h+='</tbody></table></div></div>';
-  }
-  return h;
-}
-
-</script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;500;600;700&display=swap');
 :root{
@@ -918,6 +660,262 @@ function openEditor(title,fieldsHTML,onSave){
   $("modal-inner").innerHTML=h; $("modal-bg").className="modal-bg show";
 }
 function runEditorSave(){ if(EDITOR_SAVE){ var ok=EDITOR_SAVE(); if(ok!==false) closeModal(); } }
+var AUDIT_QUESTIONS = [
+  { section:"Hardware", items:[
+    {id:"hw1", q:"Are all VSA units working?"},
+    {id:"hw2", q:"Are all pin card / credit card machines working?"},
+    {id:"hw3", q:"Are all scanners working?"},
+    {id:"hw4", q:"Are all receipt printers working?"},
+    {id:"hw5", q:"Are all regular printers working?"},
+    {id:"hw6", q:"Are all demo devices secure?"},
+    {id:"hw7", q:"Is the GPS tracking device present and charged?"}
+  ]},
+  { section:"Sales Floor", items:[
+    {id:"sf1", q:"Are overhead areas (lighting and ceiling tiles) in good condition?"},
+    {id:"sf2", q:"Are walls, doors, and windows in good condition?"},
+    {id:"sf3", q:"Are flooring and fixtures in sales floor area in good condition?"}
+  ]},
+  { section:"Employee Readiness", items:[
+    {id:"er1", q:"Do all reps have their own assigned sales / Brinks codes?"},
+    {id:"er2", q:"Who are the key holders for this location?", type:"text"},
+    {id:"er3", q:"Are there regulated waste bins present?"}
+  ]},
+  { section:"Location", items:[
+    {id:"lo1", q:"Is there an A-frame?"},
+    {id:"lo2", q:"Is there a flag?"}
+  ]}
+];
+var ISSUE_STATUSES = ["Open","In Progress","Fixed"];
+var AUDIT = { sub:"new", store:"", auditor:"", answers:{}, busy:false, _loaded:false };
+var ISSUES = [];
+var AUDIT_LOGS = [];
+var ISSUE_FILTER = { store:"", status:"" };
+
+function totalAnsweredQuestions(){ var n=0; for(var i=0;i<AUDIT_QUESTIONS.length;i++){ for(var j=0;j<AUDIT_QUESTIONS[i].items.length;j++){ if(AUDIT_QUESTIONS[i].items[j].type!=="text") n++; } } return n; }
+function issueBadge(s){ var cls=s==="Open"?"b-open":s==="In Progress"?"b-prog":"b-fixed"; return '<span class="badge '+cls+'"><span class="dot"></span>'+X(s)+'</span>'; }
+
+function normalizeIssue(o){
+  var g=function(){ for(var i=0;i<arguments.length;i++){ if(o[arguments[i]]!=null && o[arguments[i]]!=="") return o[arguments[i]]; } return ""; };
+  return { issueId:g("issueId","IssueId","Title")||uid("IS-"), auditId:g("auditId","AuditId"), store:g("store","Store"), auditor:g("auditor","Auditor"), auditDate:String(g("auditDate","AuditDate","Created")||"").substring(0,10), section:g("section","Section"), question:g("question","Question"), note:g("note","Note"), photoUrl:g("photoUrl","PhotoUrl"), status:g("status","Status")||"Open", fixedDate:String(g("fixedDate","FixedDate")||"").substring(0,10), fixedBy:g("fixedBy","FixedBy") };
+}
+function normalizeLog(o){
+  var g=function(){ for(var i=0;i<arguments.length;i++){ if(o[arguments[i]]!=null && o[arguments[i]]!=="") return o[arguments[i]]; } return ""; };
+  var ans=g("answers","Answers"); if(typeof ans==="string"){ try{ ans=JSON.parse(ans.replace(/<[^>]*>/g,"").replace(/&quot;/g,'"').replace(/&amp;/g,"&")); }catch(e){ ans={}; } }
+  return { auditId:g("auditId","AuditId","Title")||uid("AU-"), store:g("store","Store"), auditor:g("auditor","Auditor"), auditDate:String(g("auditDate","AuditDate","Created")||"").substring(0,10), totalCount:g("totalCount","TotalCount"), flaggedCount:g("flaggedCount","FlaggedCount"), keyholders:g("keyholders","Keyholders"), answers:ans||{} };
+}
+
+function loadIssues(cb){
+  if(!configured(CONFIG.GET_AUDIT_ISSUES_FLOW_URL)){ ISSUES=lsGet("auditIssues",null)||[]; if(cb)cb(); return; }
+  fetch(CONFIG.GET_AUDIT_ISSUES_FLOW_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"})
+    .then(function(r){ if(!r.ok) throw 0; return r.json(); })
+    .then(function(d){ var a=d.value||d.issues||d||[]; if(!(a instanceof Array)) a=[]; ISSUES=[]; for(var i=0;i<a.length;i++) ISSUES.push(normalizeIssue(a[i])); lsSet("auditIssues",ISSUES); if(cb)cb(); })
+    .catch(function(){ ISSUES=lsGet("auditIssues",null)||[]; if(cb)cb(); });
+}
+function loadLogs(cb){
+  if(!configured(CONFIG.GET_AUDIT_LOGS_FLOW_URL)){ AUDIT_LOGS=lsGet("auditLogs",null)||[]; if(cb)cb(); return; }
+  fetch(CONFIG.GET_AUDIT_LOGS_FLOW_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"})
+    .then(function(r){ if(!r.ok) throw 0; return r.json(); })
+    .then(function(d){ var a=d.value||d.logs||d||[]; if(!(a instanceof Array)) a=[]; AUDIT_LOGS=[]; for(var i=0;i<a.length;i++) AUDIT_LOGS.push(normalizeLog(a[i])); lsSet("auditLogs",AUDIT_LOGS); if(cb)cb(); })
+    .catch(function(){ AUDIT_LOGS=lsGet("auditLogs",null)||[]; if(cb)cb(); });
+}
+
+function renderAudits(sub){
+  if(sub) AUDIT.sub=sub;
+  if(!AUDIT._loaded){ AUDIT._loaded=true; loadIssues(function(){ loadLogs(function(){ renderAudits(); }); }); }
+  var h='<div class="tabs">'+tabsHTML()+'</div>';
+  h+='<div class="row-between" style="margin-bottom:6px"><div><div class="section-title">Store audits</div><div class="section-sub">Field checklist for store visits. Flagged items become the HQ punch list.</div></div></div>';
+  h+='<div class="audit-tabs">';
+  var subs=[{id:"new",label:"+ New audit"},{id:"issues",label:"Open issues"},{id:"history",label:"History"}];
+  for(var i=0;i<subs.length;i++) h+='<button class="'+(AUDIT.sub===subs[i].id?'on':'')+'" onclick="renderAudits(\''+subs[i].id+'\')">'+subs[i].label+'</button>';
+  h+='</div>';
+  if(AUDIT.sub==="new") h+=aNew();
+  else if(AUDIT.sub==="issues") h+=aIssues();
+  else if(AUDIT.sub==="history") h+=aHistory();
+  $("wrap").innerHTML=h;
+}
+
+function aNew(){
+  var so='<option value="">Pick a store…</option>';
+  for(var i=0;i<CFG.stores.length;i++){ so+='<option value="'+X(CFG.stores[i].code)+'"'+(AUDIT.store===CFG.stores[i].code?' selected':'')+'>'+X(CFG.stores[i].code)+' — '+X(CFG.stores[i].name)+'</option>'; }
+  var done=0,no=0;
+  for(var k=0;k<AUDIT_QUESTIONS.length;k++){ for(var m=0;m<AUDIT_QUESTIONS[k].items.length;m++){ var qq=AUDIT_QUESTIONS[k].items[m]; if(qq.type==="text") continue; if(AUDIT.answers[qq.id]&&AUDIT.answers[qq.id].answer){ done++; if(AUDIT.answers[qq.id].answer==="no") no++; } } }
+  var t=totalAnsweredQuestions();
+  var h='<div class="card pad">';
+  h+='<div class="grid2"><div class="field"><label>Auditor name</label><input value="'+X(AUDIT.auditor)+'" placeholder="e.g. Rose Perez" oninput="AUDIT.auditor=this.value"></div>';
+  h+='<div class="field"><label>Store</label><select onchange="AUDIT.store=this.value">'+so+'</select></div></div>';
+  h+='<div style="margin-bottom:14px"><span class="summary-pill" style="background:var(--gray-bg);color:var(--purple)">'+done+'/'+t+' answered</span>';
+  if(no>0) h+='<span class="summary-pill b-open">'+no+' flagged</span>';
+  h+='</div>';
+  for(var s=0;s<AUDIT_QUESTIONS.length;s++){
+    h+='<div class="audit-section-hd">'+X(AUDIT_QUESTIONS[s].section)+'</div>';
+    for(var j=0;j<AUDIT_QUESTIONS[s].items.length;j++) h+=aQbox(AUDIT_QUESTIONS[s].items[j]);
+  }
+  h+='<div class="row-between" style="margin-top:18px;margin-bottom:0"><button class="btn btn-ghost" onclick="resetAudit()">Reset</button><button class="btn btn-primary" id="audit-submit" onclick="submitAudit()">Submit audit &#10003;</button></div>';
+  h+='</div>';
+  return h;
+}
+function aQbox(it){
+  var a=AUDIT.answers[it.id]||{};
+  if(it.type==="text"){
+    return '<div class="qbox"><div class="qtxt">'+X(it.q)+'</div><textarea style="width:100%;font-family:Montserrat;font-size:13px;padding:9px 11px;border:1px solid var(--line);border-radius:9px;min-height:50px;outline:none" oninput="setAuditAns(\''+it.id+'\',\'text\',this.value)" placeholder="List the key holders for this store…">'+X(a.note||"")+'</textarea></div>';
+  }
+  var cls=a.answer==="yes"?"yes":a.answer==="no"?"no":a.answer==="na"?"na":"";
+  var h='<div class="qbox '+cls+'" id="qb-'+it.id+'"><div class="qtxt">'+X(it.q)+'</div>';
+  h+='<div class="ynbtns">';
+  h+='<button class="'+(a.answer==="yes"?"yes-on":"")+'" onclick="setAuditAns(\''+it.id+'\',\'yes\')">Yes</button>';
+  h+='<button class="'+(a.answer==="no"?"no-on":"")+'" onclick="setAuditAns(\''+it.id+'\',\'no\')">No</button>';
+  h+='<button class="'+(a.answer==="na"?"na-on":"")+'" onclick="setAuditAns(\''+it.id+'\',\'na\')">N/A</button>';
+  h+='</div>';
+  h+='<div class="qnote"><textarea placeholder="What\'s the issue? (required)" oninput="setAuditNote(\''+it.id+'\',this.value)">'+X(a.note||"")+'</textarea>';
+  h+='<div class="qphoto"><label for="ph-'+it.id+'">&#128247; Add photo<input type="file" id="ph-'+it.id+'" accept="image/*" onchange="setAuditPhoto(\''+it.id+'\',this)"></label>';
+  if(a.photo){ h+='<div class="preview" style="background-image:url('+a.photo+')"></div><span class="pname">photo attached</span><button class="iconbtn" onclick="setAuditPhoto(\''+it.id+'\',null)" style="margin-left:6px;width:28px;height:28px">&times;</button>'; }
+  h+='</div></div></div>';
+  return h;
+}
+function setAuditAns(qid,ans,textVal){
+  if(!AUDIT.answers[qid]) AUDIT.answers[qid]={};
+  if(ans==="text"){ AUDIT.answers[qid].note=textVal; return; }
+  AUDIT.answers[qid].answer=ans;
+  if(ans!=="no"){ AUDIT.answers[qid].note=""; AUDIT.answers[qid].photo=""; }
+  renderAudits();
+}
+function setAuditNote(qid,v){ if(!AUDIT.answers[qid]) AUDIT.answers[qid]={}; AUDIT.answers[qid].note=v; }
+function setAuditPhoto(qid,input){
+  if(!AUDIT.answers[qid]) AUDIT.answers[qid]={};
+  if(input===null){ AUDIT.answers[qid].photo=""; renderAudits(); return; }
+  var f=input.files&&input.files[0]; if(!f) return;
+  if(f.size>4*1024*1024){ alert("Photo too large (max 4 MB). Try a smaller image."); return; }
+  var rd=new FileReader();
+  rd.onload=function(e){ AUDIT.answers[qid].photo=e.target.result; renderAudits(); };
+  rd.readAsDataURL(f);
+}
+function resetAudit(){ if(confirm("Clear this audit?")){ AUDIT={ sub:"new", store:"", auditor:AUDIT.auditor, answers:{}, busy:false, _loaded:true }; renderAudits(); } }
+
+function newAuditId(){ var d=new Date(); return "AU-"+d.getFullYear()+pad2(d.getMonth()+1)+pad2(d.getDate())+"-"+Math.floor(1000+Math.random()*9000); }
+function submitAudit(){
+  if(AUDIT.busy) return;
+  if(!AUDIT.store){ alert("Pick a store."); return; }
+  if(!AUDIT.auditor){ alert("Enter your name as the auditor."); return; }
+  var unanswered=0;
+  for(var i=0;i<AUDIT_QUESTIONS.length;i++){ for(var j=0;j<AUDIT_QUESTIONS[i].items.length;j++){ var it=AUDIT_QUESTIONS[i].items[j]; if(it.type==="text") continue; if(!AUDIT.answers[it.id]||!AUDIT.answers[it.id].answer) unanswered++; } }
+  if(unanswered){ alert("Please answer all questions ("+unanswered+" remaining)."); return; }
+  for(var k=0;k<AUDIT_QUESTIONS.length;k++){ for(var m=0;m<AUDIT_QUESTIONS[k].items.length;m++){ var qq=AUDIT_QUESTIONS[k].items[m]; var a=AUDIT.answers[qq.id]; if(a&&a.answer==="no"&&!a.note){ alert("Please add a note for: "+qq.q); return; } } }
+
+  AUDIT.busy=true;
+  var btn=$("audit-submit"); if(btn){ btn.disabled=true; btn.innerHTML="Sending…"; }
+
+  var auditId=newAuditId(), total=0, flagged=0, flaggedItems=[], fullAnswers={};
+  var keyholders=(AUDIT.answers["er2"]&&AUDIT.answers["er2"].note)||"";
+  for(var s=0;s<AUDIT_QUESTIONS.length;s++){
+    for(var t=0;t<AUDIT_QUESTIONS[s].items.length;t++){
+      var qx=AUDIT_QUESTIONS[s].items[t], ans=AUDIT.answers[qx.id]||{};
+      fullAnswers[qx.id]={ answer:ans.answer||"", note:ans.note||"" };
+      if(qx.type==="text") continue;
+      total++;
+      if(ans.answer==="no"){
+        flagged++;
+        var rawPhoto = ans.photo||"";
+        var b64 = rawPhoto && rawPhoto.indexOf(",")>=0 ? rawPhoto.substring(rawPhoto.indexOf(",")+1) : rawPhoto;
+        flaggedItems.push({ issueId:"IS-"+auditId.substring(3)+"-"+flaggedItems.length, auditId:auditId, section:AUDIT_QUESTIONS[s].section, questionId:qx.id, question:qx.q, note:ans.note||"", photoBase64:b64, photoName:b64?(qx.id+".jpg"):"", status:"Open" });
+      }
+    }
+  }
+  var payload={ auditId:auditId, auditor:AUDIT.auditor, store:AUDIT.store, storeName:storeName(AUDIT.store), auditDate:todayISO(), totalCount:total, flaggedCount:flagged, keyholders:keyholders, answers:fullAnswers, flaggedItems:flaggedItems };
+
+  function done(success){
+    AUDIT.busy=false;
+    if(success){
+      alert("Audit submitted. "+flagged+" issue(s) opened.");
+      AUDIT={ sub:"issues", store:"", auditor:AUDIT.auditor, answers:{}, busy:false, _loaded:false };
+      renderAudits();
+    } else {
+      var pending=lsGet("pendingAudits",[]); pending.push(payload); lsSet("pendingAudits",pending);
+      alert("Couldn't reach SharePoint — the audit was saved locally and will need to be re-sent.");
+      var b=$("audit-submit"); if(b){ b.disabled=false; b.innerHTML="Submit audit &#10003;"; }
+    }
+  }
+  if(configured(CONFIG.SAVE_AUDIT_FLOW_URL)){
+    fetch(CONFIG.SAVE_AUDIT_FLOW_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)})
+      .then(function(r){ if(!r.ok) throw 0; done(true); })
+      .catch(function(){ done(false); });
+  } else {
+    var pending=lsGet("pendingAudits",[]); pending.push(payload); lsSet("pendingAudits",pending);
+    alert("Audit saved locally (Save Audit flow not wired yet).");
+    done(true);
+  }
+}
+
+function updateIssue(issueId,status){
+  var iss=null; for(var i=0;i<ISSUES.length;i++){ if(ISSUES[i].issueId===issueId){ iss=ISSUES[i]; break; } }
+  if(!iss) return;
+  iss.status=status;
+  if(status==="Fixed"){ if(!iss.fixedDate) iss.fixedDate=todayISO(); if(!iss.fixedBy) iss.fixedBy="HQ Admin"; }
+  if(status!=="Fixed"){ iss.fixedDate=""; iss.fixedBy=""; }
+  lsSet("auditIssues",ISSUES);
+  if(configured(CONFIG.UPDATE_AUDIT_ISSUE_FLOW_URL)){
+    fetch(CONFIG.UPDATE_AUDIT_ISSUE_FLOW_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(iss)}).catch(function(){});
+  }
+  renderAudits();
+}
+
+function aIssues(){
+  var so='<option value="">All stores</option>';
+  for(var i=0;i<CFG.stores.length;i++){ so+='<option value="'+X(CFG.stores[i].code)+'"'+(ISSUE_FILTER.store===CFG.stores[i].code?' selected':'')+'>'+X(CFG.stores[i].code)+'</option>'; }
+  var st='<option value="">All statuses</option>';
+  for(var j=0;j<ISSUE_STATUSES.length;j++) st+='<option value="'+ISSUE_STATUSES[j]+'"'+(ISSUE_FILTER.status===ISSUE_STATUSES[j]?' selected':'')+'>'+ISSUE_STATUSES[j]+'</option>';
+  var list=[];
+  for(var k=0;k<ISSUES.length;k++){ var iss=ISSUES[k]; if(ISSUE_FILTER.store&&iss.store!==ISSUE_FILTER.store) continue; if(ISSUE_FILTER.status&&iss.status!==ISSUE_FILTER.status) continue; list.push(iss); }
+  var rank={"Open":0,"In Progress":1,"Fixed":2};
+  list.sort(function(a,b){ var ra=rank[a.status]==null?9:rank[a.status], rb=rank[b.status]==null?9:rank[b.status]; if(ra!==rb) return ra-rb; return a.auditDate<b.auditDate?1:-1; });
+  var openN=0,progN=0,fixedN=0;
+  for(var x=0;x<ISSUES.length;x++){ if(ISSUES[x].status==="Open") openN++; else if(ISSUES[x].status==="In Progress") progN++; else if(ISSUES[x].status==="Fixed") fixedN++; }
+  var h='<div class="tiles"><div class="tile r"><div class="lbl">Open</div><div class="val">'+openN+'</div></div><div class="tile a"><div class="lbl">In Progress</div><div class="val">'+progN+'</div></div><div class="tile g"><div class="lbl">Fixed</div><div class="val">'+fixedN+'</div></div></div>';
+  h+='<div class="filters"><select onchange="ISSUE_FILTER.store=this.value;renderAudits()">'+so+'</select><select onchange="ISSUE_FILTER.status=this.value;renderAudits()">'+st+'</select></div>';
+  h+='<div class="card pad">';
+  if(list.length===0) h+='<div class="empty">No issues match the current filters. Submit an audit with a No answer and they show up here.</div>';
+  for(var y=0;y<list.length;y++) h+=aIssueCard(list[y]);
+  h+='</div>';
+  return h;
+}
+function aIssueCard(iss){
+  var cls=iss.status==="Open"?"open":iss.status==="In Progress"?"prog":"fixed";
+  var h='<div class="issue-card '+cls+'">';
+  if(iss.photoUrl) h+='<div class="thumb" style="background-image:url('+X(iss.photoUrl)+')" onclick="window.open(\''+X(iss.photoUrl)+'\',\'_blank\')" title="Open photo"></div>';
+  h+='<div class="body"><div class="top"><span class="store">'+X(iss.store)+'</span> <span class="muted" style="font-size:12px">'+X(iss.section)+'</span> '+issueBadge(iss.status)+'</div>';
+  h+='<div class="q">'+X(iss.question)+'</div>';
+  if(iss.note) h+='<div class="note">'+X(iss.note)+'</div>';
+  h+='<div class="meta"><span>Reported by '+X(iss.auditor||"—")+'</span><span>'+fmtDate(iss.auditDate)+'</span>';
+  if(iss.fixedDate) h+='<span>Fixed '+fmtDate(iss.fixedDate)+(iss.fixedBy?' by '+X(iss.fixedBy):'')+'</span>';
+  h+='</div></div>';
+  h+='<div class="acts">';
+  if(iss.status!=="Open") h+='<button class="btn btn-ghost btn-sm" onclick="updateIssue(\''+X(iss.issueId)+'\',\'Open\')">Reopen</button>';
+  if(iss.status!=="In Progress") h+='<button class="btn btn-ghost btn-sm" onclick="updateIssue(\''+X(iss.issueId)+'\',\'In Progress\')">In progress</button>';
+  if(iss.status!=="Fixed") h+='<button class="btn btn-primary btn-sm" onclick="updateIssue(\''+X(iss.issueId)+'\',\'Fixed\')">Mark fixed</button>';
+  h+='</div></div>';
+  return h;
+}
+
+function aHistory(){
+  var byStore={};
+  for(var i=0;i<AUDIT_LOGS.length;i++){ var l=AUDIT_LOGS[i]; if(!byStore[l.store]) byStore[l.store]=[]; byStore[l.store].push(l); }
+  var storeKeys=[]; for(var s in byStore) storeKeys.push(s);
+  storeKeys.sort(function(a,b){ var la="",lb=""; for(var i=0;i<byStore[a].length;i++) if(byStore[a][i].auditDate>la) la=byStore[a][i].auditDate; for(var j=0;j<byStore[b].length;j++) if(byStore[b][j].auditDate>lb) lb=byStore[b][j].auditDate; return la<lb?1:-1; });
+  var h='';
+  if(storeKeys.length===0) h+='<div class="card pad"><div class="empty">No audits submitted yet. Submit one from the "+ New audit" tab.</div></div>';
+  for(var k=0;k<storeKeys.length;k++){
+    var code=storeKeys[k], logs=byStore[code].slice(); logs.sort(function(a,b){ return a.auditDate<b.auditDate?1:-1; });
+    h+='<div class="card" style="margin-bottom:14px"><div class="pad" style="padding-bottom:10px"><div class="row-between" style="margin-bottom:0"><div><strong>'+X(code)+'</strong> <span class="muted">— '+X(storeName(code))+'</span></div><span class="chip">'+logs.length+' audit(s)</span></div></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Date</th><th>Auditor</th><th>Score</th><th>Flagged</th><th>Key holders</th></tr></thead><tbody>';
+    for(var t=0;t<logs.length;t++){
+      var lg=logs[t], score=lg.totalCount?((lg.totalCount-lg.flaggedCount)+"/"+lg.totalCount):"—";
+      h+='<tr><td class="muted">'+fmtDate(lg.auditDate)+'</td><td>'+X(lg.auditor)+'</td><td>'+score+'</td><td>'+(lg.flaggedCount>0?'<span class="badge b-open">'+lg.flaggedCount+'</span>':'<span class="badge b-fulfilled">0</span>')+'</td><td class="muted" style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+X(lg.keyholders||"—")+'</td></tr>';
+    }
+    h+='</tbody></table></div></div>';
+  }
+  return h;
+}
+/* ============================================================
+   AUDIT MODULE — PIN-gated inside the dashboard
+   ============================================================ */
 </script>
 </body>
 </html>
