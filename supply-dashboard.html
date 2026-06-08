@@ -287,7 +287,7 @@ function setLive(state,txt){
 function countStatus(s){ var n=0; for(var i=0;i<ORDERS.length;i++){ if(ORDERS[i].status===s) n++; } return n; }
 function closeModal(){ $("modal-bg").className="modal-bg"; }
 
-function boot(){ loadConfig(function(){ DASH.section="overview"; loadOrders(); }); }
+function boot(){ loadConfig(function(){ DASH.section="overview"; loadOrders(); loadIssues(function(){ loadLogs(function(){ renderDash(DASH.section); }); }); }); }
 boot();
 
 /* ============================================================
@@ -345,6 +345,33 @@ function dOverview(){
   h+='<div class="alertcard danger"><div class="big">'+q30+'</div><div><div style="font-weight:600;font-size:13px">Stores quiet 30+ days</div><div class="muted" style="font-size:12px">See Store Activity</div></div></div>';
   h+='<div class="alertcard warn"><div class="big">'+q14+'</div><div><div style="font-weight:600;font-size:13px">Stores quiet 14+ days</div><div class="muted" style="font-size:12px">See Store Activity</div></div></div>';
   h+='</div></div>';
+
+  /* ---- Store audits at a glance ---- */
+  var aOpen=0,aProg=0,aFixed=0;
+  for(var ax=0;ax<ISSUES.length;ax++){ if(ISSUES[ax].status==="Open") aOpen++; else if(ISSUES[ax].status==="In Progress") aProg++; else if(ISSUES[ax].status==="Fixed") aFixed++; }
+  h+='<div class="row-between" style="margin-top:26px"><div><div class="section-title">Store audits at a glance</div><div class="section-sub">Punch list from the latest store visits.</div></div><button class="btn btn-ghost btn-sm" onclick="renderDash(\'audits\')">Open Audits &#8594;</button></div>';
+  h+='<div class="tiles"><div class="tile r"><div class="lbl">Open Issues</div><div class="val">'+aOpen+'</div><div class="delta">to fix</div></div><div class="tile a"><div class="lbl">In Progress</div><div class="val">'+aProg+'</div></div><div class="tile g"><div class="lbl">Fixed</div><div class="val">'+aFixed+'</div></div><div class="tile p"><div class="lbl">Audits Submitted</div><div class="val">'+AUDIT_LOGS.length+'</div><div class="delta">all time</div></div></div>';
+  /* most recent open issues */
+  var openList=[];
+  for(var ay=0;ay<ISSUES.length;ay++){ if(ISSUES[ay].status==="Open") openList.push(ISSUES[ay]); }
+  openList.sort(function(a,b){ return a.auditDate<b.auditDate?1:-1; });
+  if(openList.length>0){
+    h+='<div class="card pad"><strong style="font-size:13px">Latest open issues</strong><div class="section-sub" style="margin-top:3px">Newest 5 — click <em>Open Audits</em> for the full list.</div>';
+    var max=Math.min(5,openList.length);
+    for(var az=0;az<max;az++){
+      var iss=openList[az];
+      h+='<div class="issue-card open" style="margin-top:10px;cursor:pointer" onclick="renderDash(\'audits\');setTimeout(function(){renderAudits(\'issues\');},50)">';
+      if(iss.photoUrl) h+='<div class="thumb" style="background-image:url('+X(iss.photoUrl)+')"></div>';
+      h+='<div class="body"><div class="top"><span class="store">'+X(iss.store)+'</span> <span class="muted" style="font-size:12px">'+X(iss.section)+'</span> '+issueBadge(iss.status)+'</div>';
+      h+='<div class="q">'+X(iss.question)+'</div>';
+      if(iss.note) h+='<div class="note">'+X(iss.note)+'</div>';
+      h+='<div class="meta"><span>Reported by '+X(iss.auditor||"—")+'</span><span>'+fmtDate(iss.auditDate)+'</span></div>';
+      h+='</div></div>';
+    }
+    h+='</div>';
+  } else {
+    h+='<div class="card pad"><div class="empty">No open issues. Submit a Store Audit to log any that need fixing.</div></div>';
+  }
   return h;
 }
 
